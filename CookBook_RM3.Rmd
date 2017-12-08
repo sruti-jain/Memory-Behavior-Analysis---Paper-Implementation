@@ -1,0 +1,2731 @@
+---
+title: "Research Methods Cookbook"
+author: "Sruti Jain"
+date: "November 10, 2017"
+output:
+  word_document: default
+  toc: yes
+  toc_depth: 2
+  pdf_document: default
+---
+
+## Objective
+The objective of this markdown book is analyzing the output of multiple data analysis techniques and selecting the most appropriate one given a dataset. Below are all the techniques covered in this cookbook that are used for this analysis: 
+
+1. **Principal Component Analysis (PCA)** is a statistical procedure that uses an orthogonal transformation to convert a set of observations of possibly correlated variables into a set of values of linearly uncorrelated variables called principal components (or sometimes, principal modes of variation). The number of principal components is less than or equal to the smaller of the number of original variables or the number of observations. This transformation is defined in such a way that the first principal component has the largest possible variance (that is, accounts for as much of the variability in the data as possible), and each succeeding component in turn has the highest variance possible under the constraint that it is orthogonal to the preceding components. The resulting vectors are an uncorrelated orthogonal basis set.
+
+2. **Correspondence Analysis (CA)** is an extension of principal component analysis suited to explore relationships among qualitative variables in the form of contingency tables. When analyzing a two-way contingency table, a typical question is whether certain row elements are associated with some elements of column elements. Correspondence analysis is a geometric approach for visualizing the rows and columns of a two-way contingency table as points in a low-dimensional space, such that the positions of the row and column points are consistent with their associations in the table. The aim is to have a global view of the data that is useful for interpretation.
+
+3. **Multiple Correspondence Analysis (MCA)** is an extension of the simple correspondence analysis for summarizing and visualizing a data table containing more than two categorical variables & is obtained by using a standard correspondence analysis on an indicator matrix . It can also be seen as a generalization of principal component analysis when the variables to be analyzed are categorical instead of quantitative. MCA can also accommodate quantitative variables by recoding them as "bins." 
+
+4. **Partial Least Square Analysis (PLS)** also sometimes called projection to latent structures relate the information present in two data tables that collect measurements on the same set of observations. PLS methods proceed by deriving latent variables which are linear combinations of the variables of a data table.When the goal is to ???nd the shared information between two tables,the approach is equivalent to a correlation problem and the technique is then called partial least square correlation (PLSC). In this case there are two sets of latent variables (one set per table), and these latent variables are required to have maximal covariance. When the goal is to predict one data table the other one, the technique is then called partial least square regression.
+
+5. **Barycentric Discriminant Analysis (BADA)** is a robust version of discriminant analysis that is used-like discriminant analysis - when multiple measurements describe a set of observations in which each observation belongs to one category from a set of a priori defined categories. The goal of BADA is to combine the measurements to create new variables (called components or discriminant variables) that best separate the categories. These discriminant variables are also used to assign the original observations or "new" observations to the a-priori defined categories.
+
+6. **Discriminant Correspondence Analysis (DICA)** is an extension of discriminant analysis (DA) and correspondence analysis (CA). Like discriminant analysis, the goal of DCA is to categorize observations in pre-defined groups, and like correspondence analysis,it is used with nominal variables. The main idea behind DCA is to represent each group by the sum of its observations and to perform a simple CA on the groups by variables matrix. The original observations are then projected as supplementary elements and each observation is assigned to the closest group. The comparison between the apriori and the a posteriori classifications can be used to assess the quality of the discrimination.
+
+7. **DiSTATIS** The goal of DISTATIS is to analyze a set of distance matrices. In order to compare distance matrices, DISTATIS combines them into a common structure called a compromise and then projects the original distance matrices onto this compromise. The general idea behind DISTATIS is first to transform each distance matrix into a cross-product matrix as it is done for a standard MDS. Then, these cross-product matrices are aggregated to create a compromise cross-product matrix which represents their consensus. The compromise matrix is obtained as a weighted average of individual cross-product matrices. The PCA of the compromise gives the position of the objects in the compromise space. The position of the object for each study can be represented in the compromise space as supplementary points. Finally, as a byproduct of the weight computation, the studies can be represented as points in a multidimensional space.
+
+8. **Multiple Factor Analysis (MFA/STATIS)** combines several data tables into one single analysis. The ???rst step is to perform a PCA of each table. Then each data table is normalized by dividing all the entries of the table by the ???rst eigenvalue of its PCA. This transformation-akin to the univariate Z-score-equalizes the weight of each table in the ???nal solution and therefore makes possible the simultaneous analysis of several heterogenous data tables. 
+
+9. **Inferential Methods** Used for testing the stability of above methods with 0.05 level of significance
+    a. **Bootstrapping**: In statistics, bootstrapping is any test or metric that relies on random sampling with   replacement. Bootstrapping allows assigning measures of accuracy (defined in terms of bias, variance, confidence intervals, prediction error or some other such measure) to sample estimates.This technique allows estimation of the sampling distribution of almost any statistic using random sampling methods. Generally, it falls in the broader class of resampling methods.
+    b. **Permutation**: In simple terms, permutation is all the possible arrangements of a collection of things, where the order is important. In statistics, it is defined as the notion that relates to the act of arranging all the members of a set into some sequence or order, or if the set is already ordered, rearranging (reordering) its elements, a process called permuting.
+    c. **Jackknife**: In statistics, the jackknife is a resampling technique especially useful for variance and bias estimation. The jackknife predates other common resampling methods such as the bootstrap. The jackknife estimator of a parameter is found by systematically leaving out each observation from a dataset and calculating the estimate and then finding the average of these calculations. Given a sample of size n, the jackknife estimate is found by aggregating the estimates of each n-1-sized sub-sample.
+
+```{r setup, echo=FALSE}
+knitr::image_uri
+# Clearing the environment & importing the libraries required for the analysis
+rm(list = ls())
+graphics.off()
+# Suppressing error and warning messages of all libraries
+suppressMessages(library(ExPosition))
+suppressMessages(library(InPosition))
+suppressMessages(library(ggplot2))
+suppressMessages(library(DistatisR))
+suppressMessages(library(InPosition))
+suppressMessages(library(TInPosition))
+suppressMessages(library(MExPosition))
+suppressMessages(library(factoextra))
+suppressMessages(library(corrplot))
+suppressMessages(library(PTCA4CATA))
+suppressMessages(library(ggpubr))
+suppressMessages(library(stringr))
+suppressMessages(library(reshape))
+
+library(ExPosition) # Includes functions epPCA, epCA, epMCA
+library(InPosition) # Inference tests for the ExPosition package
+library(TExPosition)# Multiple Table analysis
+library(TInPosition)# Inference tests for the TExPosition package
+library(DistatisR)  # Includes function for DISTATIS Analysis
+library(MExPosition)# Includes function for MFA
+library(ggplot2)    # Plotting library
+library(factoextra) # Plotting library
+library(corrplot)   # Plotting Correlation heatmap
+library(PTCA4CATA)  # Plotting ggplot2 functions
+library(ggpubr)
+library(stringr)
+library(reshape)    # Melt Function
+
+```
+
+
+## Dataset Information: SAM, BAMA, OSIQ, Judge, BFI
+
+1. **The Survey of Autobiographical memory (SAM)** was designed to access trait mnemonics of naturalistic episodic autobiographical, semantic, spatial memory & future thinking. It records the data taken from a sample of 153 people (rows) to measure mnemonic abilities using 31 variables. There are two nominal variables (Active, Sex) & one factor variable (MemoryGroup). The rest of the variables are all integer with two (ID & Age) being a ratio-scale and all others interval variables. 
+
+*Research Hypothesis*: How the survey questionaire related to memory? 
+
+2. **BAMA Politics Dataset** was a statewide survey of 501 adult citizens collecting responses to questions on various topics including education, ratings and images of political parties. The contingency table was created for politics versus education and then CA analysis was run on the contingency table. 
+
+*Research Hypothesis*: Does the education of an individual influence the choice of political party? 
+
+3. **Object-Spatial Imagery Questionnaire (OSIQ)** The same participants of SAM data were now asked the Object-Spatial Imagery questions that consisted of two separate scales: an object imagery scale, with self-report items designed to assess object imagery preferences and experiences, and a spatial imagery scale, with self-report items designed to assess spatial imagery preferences and experiences. There were 14 Spatial Imagery questions & 16 Object Imagery questions that were rated on a scale of 1-5. 
+
+*Research Hypothesis*: How does OSIQ (Object-Spatial Imagery) survey relate to different types of memory (Episodic, Semantic, Spatial, Future) ?
+
+4. **Judges Sort Data - Orange Juice Test**: The dataset consist of rating from 44 Judges to 10 different orange juice samples. We are interested in knowing how each judge's rating is comparable to other judges while also how these juices are related or similar to one another. So we compute Distance Matrix and then perform a MDS/DISTATIS to evaluates
+the similarity between Distance matrices. We then compute a compromise matrix which represents the best aggregate
+of the original matrices. The original distance matrices are then projected onto the compromise for analysis. 
+
+*Research Hypothesis*: How are the ratings of various judges comparable and which juices share a common taste ? 
+
+5. **BFI Dataset (BIG 5 personality questionnaire)**: Same participants of SAM & OSIQ data were now asked questions related to personality traits. The survey consisted of question divided into 5 segments (Ex_: Extraversion questions, Ag_: Agreeable questions, Co_: Conscientiousness questions, Ne_: Neuroticism questions, Op_: Openness questions) all rated on scale of 1-5.
+
+*Research Hypothesis*: How does memory (SAM & OSIQ) have an impact to personality traits (BFI) of an individual ? 
+
+## Functions used: PlotScree(), perm4PLSC(), Boot4PLSC()
+
+```{r PLSInference, echo=FALSE}
+#
+# create inference battery for PLSC
+# 1. Permutation
+# 2. Bootstrap
+#--------------------------------------------------------------------
+#' Compute a SCP matrix with several possible
+#' combination of centering and normalizing.
+#'
+#' Compute a SCP matrix from 2 matrices X and Y
+#'  with several possible
+#' combinations of centering and normalizing.
+#' Both X and Y are pre-processed
+#' (i.e., centered / normalized)
+#' Used for functions related to PLSC 
+#' inter-battery analysis / co-inertia...
+#' Allows different types of normalization
+#' based on the \code{ExPosition} function
+#' \code{expo.scale}.
+#' @param DATA1 an N*I matrix of quantitative data
+#' @param DATA2 an N*J matrix of quantitative data
+#' @param center1 when TRUE (default) \code{DATA1}
+#' will be centered
+#' @param center2 when TRUE (default) \code{DATA2}
+#' will be centered
+#' @param scale1 when TRUE (default) \code{DATA1}
+#' will be normalized. Depends upon \code{ExPosition}
+#' function \code{expo.scale} whose description is:
+#'boolean, text, or (numeric) vector. 
+#'If boolean or vector, 
+#'it works just as scale. 
+#'The following text options are available:
+#' 'z': z-score normalization,
+#' 'sd': standard deviation normalization, 
+#' 'rms': root mean square normalization,
+#'  'ss1': sum of squares
+#'  (of columns) equals 1 
+#'  (i.e., column vector of length of 1).
+#' @param scale2 when TRUE (default) \code{DATA2}
+#' will be normalized
+#'  (same options as for \code{scale1}).
+#' @permType what type of permutation is used
+#' if 'byMat' (default) only the labels of the observations
+#' are permutated, other option is 'byColumns' then
+#' all columns of each matrix are independently 
+#' permuted.
+#' @return S the cross-product matrix from  X and Y.
+#' @import ExPosition
+#' @export
+#' 
+compS <- function(DATA1,
+                  DATA2,
+                  center1 = TRUE,
+                  center2 = TRUE,
+                  scale1 =  'ss1' , #   'ss1' ,
+                  scale2 =  'ss1' 
+                   ){
+   X <- DATA1
+   Y <- DATA2
+   if (center1 & center2 
+            & (scale1 == 'ss1') 
+            & (scale2 == 'ss1') ){
+                  S = cor(X,Y) } else {
+              Xc <- ExPosition::expo.scale(X, center = center1,
+                                               scale = scale1)
+              Yc <- ExPosition::expo.scale(Y, center = center2,
+                                               scale = scale2)
+              S <- t(Xc) %*% Yc
+                  }
+
+       return(S)               
+} # end of function compS
+#--------------------------------------------------------------------
+#--------------------------------------------------------------------
+
+#--------------------------------------------------------------------
+#' Permutation for PLSC (as implemented
+#' in \code{TExPosition::tepPLS})
+#' 
+#' Permutation for PLSC (as implemented
+#' in \code{TExPosition::tepPLS}).
+#' Compute an omnibus permutation test  and
+#' specific test for the eigenvalues when
+#' performing a PLSC from 
+#' 2 matrices X and Y.
+#'  Several possible
+#' combinations of centering and normalizing
+#' are possible (see paramater \code{scale1, 
+#' scale2, center2, scale2}).
+#' Used for functions related to PLSC 
+#' inter-battery analysis / co-inertia...
+#' The different types of normalization are
+#' based on the \code{ExPosition::expo.scale} 
+#' function. Two different permutation schemes
+#' are currently available (see paramater
+#' \code{permType}).
+#' @param DATA1 an N*I matrix of quantitative data
+#' @param DATA2 an N*J matrix of quantitative data
+#' @param center1 when TRUE (default) \code{DATA1}
+#' will be centered
+#' @param center2 when TRUE (default) \code{DATA2}
+#' will be centered
+#' @param scale1 when TRUE (default) \code{DATA1}
+#' will be normalized. Depends upon \code{ExPosition}
+#' function \code{expo.scale} whose description is:
+#'boolean, text, or (numeric) vector. 
+#'If boolean or vector, 
+#'it works just as scale. 
+#'The following text options are available:
+#' 'z': z-score normalization,
+#' 'sd': standard deviation normalization, 
+#' 'rms': root mean square normalization,
+#'  'ss1': sum of squares
+#'  (of columns) equals 1 
+#'  (i.e., column vector of length of 1).
+#' @param scale2 when TRUE (default) \code{DATA2}
+#' will be normalized
+#'  (same options as for \code{scale1}).
+#' @param nIter (Default = 1000). Number of Iterations 
+#' (i.e. number of permuted samples computed).
+#' @permType what type of permutation is used
+#' if 'byMat' (default) only the labels of the observations
+#' are permutated, other option is 'byColumns' then
+#' all columns of each matrix are independently 
+#' permuted.
+#' @param compact if TRUE return
+#' (Default) only p-values for omnibus test
+#' @return a list with 
+#' \code{fixedInertia}: the CA-inertia of the data matrix;
+#' \code{fixedEigenvalues}: the CA-eigenvalues of
+#' the data matrix;
+#' \code{pOmnibus}: the probability associated
+#' to the inertia.
+#' If \code{compact} is \code{FALSE}, return also
+#' \code{permInertia}: 
+#' an \code{nIter} * 1 vector containing the 
+#' permutated inertia; 
+#' \code{pEigenvalues}: The probabilites 
+#' associated to each eigenvalue;
+#' If \code{compact} is is \code{FALSE}, return also
+#' \code{permEigenvalues}: an
+#' \code{nIter} * \code{L} matrix giving
+#' the permuted eigenvalues.  
+#' @author Herve Abdi
+#' @export
+
+perm4PLSC <- function(DATA1,
+                  DATA2,
+                  center1 = TRUE,
+                  center2 = TRUE,
+                  scale1 =  'ss1' , #   'ss1' ,
+                  scale2 =  'ss1',
+                  nIter = 1000,
+                  permType = 'byMat' , # 'byColumns
+                  compact = FALSE
+){
+  if (permType != 'byColumns') permType <- 'byMat'
+  DATA1 <- as.matrix(DATA1)
+  DATA2 <- as.matrix(DATA2)
+  X = DATA1
+  Y = DATA2
+  if (NCOL(X) > NCOL(Y)){
+      X = DATA2
+      Y = DATA1
+      }
+  
+  nN <- NROW(X)
+  nI <- NCOL(X)
+  nJ <- NCOL(Y)
+  if( !(nN == NROW(Y))){stop('DATA1 and DATA2 non-conformable')}
+  maxRank <- min(nI,nJ)
+  # Compute fixed SCP matrix for X & Y
+  Sfixed = compS(DATA1,
+            DATA2,
+            center1 = center1,
+            center2 = center2,
+            scale1 =  scale1, #   'ss1' ,
+            scale2 =  scale2)
+  fixedEigenvalues <- rep(0,maxRank)
+  fixedEV <- eigen(t(Sfixed) %*% (Sfixed), 
+                   symmetric = TRUE, 
+                   only.values = TRUE)$values
+  # Make sure that the length fit
+  if (length(fixedEV) > maxRank){
+    fixedEigenvalues <- fixedEV[1:maxRank] 
+  }
+  if (length(fixedEV) == maxRank){fixedEigenvalues <- fixedEV}
+  if (length(fixedEV) < maxRank){
+    fixedEigenvalues[1:length(fixedEV)] <- fixedEV 
+  }
+  fixedInertia <- sum(fixedEigenvalues)
+  # The random permutations below
+  # Initialize
+  permInertia     <- rep(NA,nIter)
+  permEigenvalues <- matrix(NA, nrow = nIter, ncol = maxRank)
+  #
+  # Use replicate
+  # first define the function
+
+  .truc <- function(X,Y,
+                    longueur = min(c(dim(X),NCOL(Y))),
+                    permType = permType){
+     valP   <- rep(0, longueur)
+     #resvp <- .eig4CA( apply(X,2,sample ))
+     if ( permType == 'byMat'){
+       Xrand <- X[sample(nN),]
+       Yrand <- Y
+     }
+     if ( permType == 'byColumns'){
+       Xrand <- apply(X,2,sample )
+       Yrand <- apply(Y,2,sample )
+     }
+     Srand <- compS(Xrand,Yrand)
+     resvp <-   eigen(t(Srand) %*% Srand, 
+                     symmetric = TRUE, 
+                     only.values = TRUE)$values
+    valP[1:length(resvp)] <- resvp
+    return(valP)
+          }
+  laLongueur <- maxRank + 1 # to fix rounding error for ev
+  permEigenvalues <- replicate(nIter, 
+                               .truc(X,Y,laLongueur,permType) )
+  permEigenvalues <- t(permEigenvalues[1:maxRank,])
+  # Done without a loop!
+  permInertia = rowSums(permEigenvalues)
+  #
+  pOmnibus = sum(permInertia > fixedInertia) / nIter
+  if (pOmnibus == 0) pOmnibus <- 1/nIter # no 0
+  pEigenvalues <- rowSums( t(permEigenvalues) > 
+                             (fixedEigenvalues)) / nIter
+  pEigenvalues[pEigenvalues == 0 ] <- 1/nIter
+  return.list <- structure(
+    list(fixedInertia = fixedInertia,
+         fixedEigenvalues = fixedEigenvalues,
+         pOmnibus = pOmnibus,
+         pEigenvalues = pEigenvalues
+    ), 
+    class = 'perm4PLSC')
+  if (!compact){
+    return.list$permInertia =  permInertia
+    return.list$permEigenvalues = permEigenvalues
+  }
+  return(return.list)
+} # End of function perm4PLSC  
+
+# *******************************************************************************
+#' Change the print function for perm4PLSC class
+#' 
+#'  Change the print function for perm4PLSC class
+#'  objects
+#'  (output of Perm4PLSC)
+#'  
+#' @param x a list: output of perm4RowCA 
+#' @param ... everything else for the functions
+#' @author Herve Abdi
+#' @export
+print.perm4PLSC <- function (x, ...) { 
+  ndash = 78 # How many dashes for separation lines
+  cat(rep("-", ndash), sep = "")
+  cat("\n Results of Permutation Tests for CA of Matrix X \n")
+  cat(" for Omnibus Inertia and Eigenvalues \n")
+  # cat("\n List name: ",deparse(eval(substitute(substitute(x)))),"\n")
+  cat(rep("-", ndash), sep = "")
+  cat("\n$ fixedInertia     ", "the Inertia of Matrix X")
+  cat("\n$ fixedEigenvalues ", "a L*1 vector of the eigenvalues of X")
+  cat("\n$ pOmnibus         ",  "the probablity associated to the Inertia")
+  cat("\n$ pEigenvalues     ", "an L* 1 matrix of p for the eigenvalues of X")
+  cat("\n$ permInertia      ", "vector of the permuted Inertia of X")
+  cat("\n$ permEigenvalues  ", "matrix of the permuted eigenvalues of X")
+  cat("\n",rep("-", ndash), sep = "")
+  cat("\n")
+  invisible(x)
+} # end of function print.perm4PLSC
+#--------------------------------------------------------------------
+
+#--------------------------------------------------------------------
+# Bootstrap here
+#
+
+# -------------------------------------------------------------------
+# function Boot4PLSC
+#' Create a Bootstrap Cube for PLSC
+#' 
+#' Create Bootstrap Cubes for the I and J sets 
+#' of a CA
+#' obtained from bootstraping the rows
+#' of the two data-tables used for PLSC. 
+#' Uses the "transition formula" to get
+#' the values of the rows and columns loadings
+#' from multiplication of the latnet variables.
+#' Gives also the bootstrap eigenvalues
+#' (if \code{eigen = TRUE}).
+#' Note: the \code{rmultinom()} function
+#' cannon handle numbers of observation that are too high
+#' (i.e., roughly larger than 10^9), so if the table total
+#' is larger than 10^8, the table is recoded so that
+#' its sum is roughly 10^8. 
+#' Planned development: A compact version that gives only
+#' bootstrap ratios (not BootstrapBricks)
+#' @param DATA1 an N*I  data matrix
+#' @param DATA2 an N*J  data matrix 
+#' (measured on the same observations as DATA2)
+#' @param center1 when TRUE (default) \code{DATA1}
+#' will be centered
+#' @param center2 when TRUE (default) \code{DATA2}
+#' will be centered
+#' @param scale1 when TRUE (default) \code{DATA1}
+#' will be normalized. Depends upon \code{ExPosition}
+#' function \code{expo.scale} whose description is:
+#'boolean, text, or (numeric) vector. 
+#'If boolean or vector, 
+#'it works just as scale. 
+#'The following text options are available:
+#' 'z': z-score normalization,
+#' 'sd': standard deviation normalization, 
+#' 'rms': root mean square normalization,
+#'  'ss1': sum of squares
+#'  (of columns) equals 1 
+#'  (i.e., each column vector has length of 1).
+#' @param scale2 when TRUE (default) \code{DATA2}
+#' will be normalized
+#'  (same options as for \code{scale1}).
+#' @param Fi = NULL, the I factor scores
+#' for the columns of DATA1.
+#' if NULL, the function computes them.
+#' @param Fj = NULL, the J factor scores
+#' for the columns of DATA2.
+#' if NULL the function computes them.
+#' @param delta = NULL, the singular values
+#' from the CA of X. If NULL (default),
+#' \code{Boot4RowCA} will compute them.
+#' @param nf2keep How many factors to 
+#' keep for the analysis (Default = 3). 
+#' @nIter (Default = 1000). Number of Iterations 
+#' (i.e. number of Bootstrtap samples).
+#' @param critical.value (Default = 2).
+#' The critical value for a BR to be considered
+#' significant. 
+#' @param eig if TRUE compute bootstraped
+#' confidence intervals (CIs) for the eigenvalues
+#' (default is FALSE). Not Currently implemented
+#' @param alphavalue the alpha level to compute
+#' confidence interval for the eigenvalues
+#' (with CIS at 1-alpha). Default is .05 
+#' @return a list with \code{bootCube.i of
+#' Bootstraped factor scores (I-set)
+#'  \code{bootRatios.i}: the bootstrap ratios;
+#'  \code{bootRatiosSignificant.i}: the Significant 
+#'  BRs; 
+#'  a list with \code{bootCube.j}: 
+#' An Items*Dimension*Iteration Brick of
+#' Bootstraped factor scores (J-set);
+#'  \code{bootRatios.j}: the bootstrap ratios;
+#'  \code{bootRatiosSignificant.j}: the Significant 
+#'  BRs; 
+#'  \code{eigenValues} the nIter * nL table
+#'  of eigenvalues; \code{eigenCIs}: the CIs for the
+#'  eigenvalues.
+#' @author Herve Abdi
+#' @import ExPosition
+#' @export
+#' 
+Boot4PLSC <- function(DATA1, DATA2,
+                      center1 = TRUE,
+                      center2 = TRUE,
+                      scale1 = 'ss1',
+                      scale2 = 'ss1',
+                        Fi = NULL,
+                        Fj = NULL,
+                        nf2keep = 3,
+                        nIter = 1000,
+                        critical.value = 2,
+                        eig = FALSE, 
+                        # To be implemented later
+                        # has no effect currently
+                        alphaLevel = .05){
+  # NB Internal function here for coherence
+  .boot.ratio.test <- function(boot.cube,
+                               critical.value=2){
+    boot.cube.mean <- apply(boot.cube,c(1,2),mean)
+    boot.cube.mean_repeat <- array(boot.cube.mean,
+                                dim=c(dim(boot.cube)))
+    boot.cube.dev <- (boot.cube - boot.cube.mean_repeat)^2
+    s.boot<-(apply(boot.cube.dev,c(1,2),mean))^(1/2)
+    boot.ratios <- boot.cube.mean / s.boot
+    significant.boot.ratios <- (abs(boot.ratios) > critical.value)
+    rownames(boot.ratios) <- rownames(boot.cube)
+    rownames(significant.boot.ratios) <- rownames(boot.cube)
+    return(list(sig.boot.ratios=significant.boot.ratios,
+                boot.ratios=boot.ratios))
+  }
+  # 
+  # End of .boot.ratio.test
+  X <- ExPosition::expo.scale(DATA1, center = center1,
+                               scale = scale1)
+  Y <- ExPosition::expo.scale(DATA2, center = center2,
+                               scale = scale2)
+  nN = NROW(X)
+  if (nN != NROW(Y)){stop('input matrices not conformable')}
+  nI= NCOL(X)
+  nJ = NCOL(Y)
+  maxRank <- min(nI,nJ)
+  if (maxRank < nf2keep) nf2keep = maxRank
+  if  ( is.null(Fi) | is.null(Fj) ){
+  # compute Fi and Fj  
+    S <- t(X) %*% Y 
+    svd.S <- svd(S, nu = nf2keep, nv = nf2keep)
+    if (nf2keep > length(svd.S$d)) nf2keep = length(svd.S$d)
+    Lx <- X %*% svd.S$u
+    Ly <- Y %*% svd.S$v
+    Fi <- svd.S$u * matrix(svd.S$d,nI,nf2keep,byrow = TRUE)
+    Fj <- svd.S$v * matrix(svd.S$d,nJ,nf2keep,byrow = TRUE)
+  } else { # Compute lx and ly from Fi and Fj
+    nL = min(NCOL(Fi),NCOL(Fj))
+    if (nL < nf2keep) nf2keep = nL
+    Fi = Fi[,1:nf2keep]
+    Fj = Fj[,1:nf2keep]
+    delta.inv <- 1 / sqrt(colSums(Fi^2))
+    Lx <-  X %*% (Fi * matrix(delta.inv,nI,nf2keep,byrow = TRUE) ) 
+    Ly <-  Y %*% (Fj * matrix(delta.inv,nJ,nf2keep,byrow = TRUE) ) 
+  }
+  # Now we have Lx Ly Fi and Fj
+  #
+  # J-set
+  fj.boot    <- array(NA, dim = c(nJ,nf2keep,nIter)) 
+  # Name.
+  dimnames(fj.boot)[1] <- list(colnames(Y))
+  dimnames(fj.boot)[2] <- list(paste0("Dimension ",1: nf2keep))
+  dimnames(fj.boot)[3] <- list(paste0("Iteration ", 1:nIter))
+  # I-set
+  fi.boot    <- array(NA, dim = c(nI,nf2keep,nIter)) 
+  # Name.
+  dimnames(fi.boot)[1] <- list(colnames(X))
+  dimnames(fi.boot)[2] <- list(paste0("Dimension ",1: nf2keep))
+  dimnames(fi.boot)[3] <- list(paste0("Iteration ", 1:nIter))
+  for (ell in 1:nIter){# ell loop
+   boot.index <- sample(nN, replace = TRUE)
+   fi.boot[,,ell] <- t(X[boot.index,]) %*% Ly[boot.index,] 
+   fj.boot[,,ell] <- t(Y[boot.index,]) %*% Lx[boot.index,] 
+   ## Code Below taken from BOOTCA. To be used 
+   ## to implement the eig option later
+   # if (eig){
+   #   # Xboot <- X[BootIndex,]
+   #   # Check that there are no zero columns
+   #   Xboot <- Xboot[,colSums(Xboot) > 0]
+   #   eigenCA <- .eig4CA(Xboot) 
+   #   # Trick here for the rank of the eigenvalues
+   #   index <- min(maxrank,length(eigenCA))
+   #   eigenValues[ell,1:index] <- 
+   #     eigenCA[1:index ]
+   # }
+  }
+  # Boot-ratios
+  BR.j <- .boot.ratio.test(fj.boot,critical.value)
+  BR.i <- .boot.ratio.test(fi.boot,critical.value)
+  #
+  return.list <- structure(
+    list(
+      bootstrapBrick.i =     fi.boot,
+      bootRatios.i =  BR.i$boot.ratios,
+      bootRatiosSignificant.i =
+        BR.i$sig.boot.ratios,
+      bootstrapBrick.j =     fj.boot,
+      bootRatios.j =  BR.j$boot.ratios,
+      bootRatiosSignificant.j =
+        BR.j$sig.boot.ratios
+    ),
+    class = "bootBrick.ij4plsc")
+## Code Below taken from BOOTCA. To be used 
+## to implement the eig option later
+# if (eig){
+#   # eliminate empty eigenvalues
+#   eigenValues <- eigenValues[, colSums(eigenValues) > 0]
+#   return.list$eigenValues = eigenValues
+#   # Get the CI
+#   # order the eigenvalues to get the CIs
+#   sortedEigenValues <- apply(eigenValues,2,sort)
+#   index  =  round(nIter * (alphaLevel /2))
+#   if (index == 0) index <- 1
+#   eigenCI = sortedEigenValues[c(index,nIter-(index-1)),]
+#   return.list$eigenCI <- eigenCI
+# } # end if eigen
+  return(return.list)
+} # End of Function 
+
+# *******************************************************************************
+#' Change the print function for class bootBrick.ij4plsc 
+#' 
+#'  Change the print function for bootBrick.ij4plsc
+#'  (output of Boot4MultCA)
+#'  
+#' @param x a list: output of Boot4PLSC
+#' @param ... everything else for the function
+#' @author Herve Abdi
+#' @export
+print.bootBrick.ij4plsc <- function (x, ...) { 
+  ndash = 78 # How many dashes for separation lines
+  cat(rep("-", ndash), sep = "")
+  cat("\n Bootstraped Factor Scores (BFS) and Bootstrap Ratios  (BR) \n")
+  cat(" for the I and J-sets of a CA (obtained from multinomial resampling of X) \n")
+  # cat("\n List name: ",deparse(eval(substitute(substitute(x)))),"\n")
+  cat(rep("-", ndash), sep = "")
+  cat("\n$ bootstrapBrick.i         ", "an I*L*nIter Brick of BFSs  for the I-Set")
+  cat("\n$ bootRatios.i             ", "an I*L matrix of BRs for the I-Set")
+  cat("\n$ bootRatiosSignificant.i  ", "an I*L logical matrix for significance of the I-Set")
+  cat("\n$ bootstrapBrick.j         ", "a  J*L*nIter Brick of BFSs  for the J-Set")
+  cat("\n$ bootRatios.j             ", "a  J*L matrix of BRs for the J-Set")
+  cat("\n$ bootRatiosSignificant.j  ", "a  J*L logical matrix for significance of the J-Set")
+ #  cat("\n$ eigenValues          ", "a  nIter*L matrix of the bootstraped CA eigenvalues")
+ #  cat("\n$ eigenCI              ", "a  2*L with min and max CI for the eigenvalues")
+  cat("\n",rep("-", ndash), sep = "")
+  cat("\n")
+  invisible(x)
+} # end of function print.bootBrick.ij 
+#--------------------------------------------------------------------
+
+```
+
+
+```{r plotScree, echo=FALSE}
+# --------------------------------------------------------------------
+# Creating a function to plot the scree
+# ev: the eigen values to plot. no default
+# max.ev the max eigen value
+#        needed because ExPosition does not return all ev
+#        but only the requested one. but return all tau
+#        so if max.ev is specified, it is used to recompute
+#        all eigenvalues
+# p.ep: the probabilities associated to the ev
+# alpha: threshold for significance. Default = .05
+# col.ns  = color for ns ev. Default is Green
+# col.sig = color for significant ev. Default is Violet
+PlotScree <- function(ev,p.ev=NULL,max.vp=NULL, alpha=.05,
+                      col.ns = '#006D2C',col.sig='red',
+                      title = "Explained Variance per Dimension"
+){
+  # percentage of inertia
+  val.tau = (100*ev/sum(ev))
+  Top.y = ceiling(max(val.tau)*.1)*10
+  # if ev is already a percentage convert it back
+  if (!is.null(max.vp)){ev = ev*(max.vp/ev[1])}
+  #
+  par(mar=c(5,6,4,4))
+  # plot.window(xlim = c(0, length(val.tau)+5),
+  #         ylim = c(0,Top.y),asp = .6)
+  plot(x = seq(1,length(val.tau)),y=val.tau,xlab='Dimensions',
+       ylab = 'Percentage of Explained Variance',
+       main = title,
+       type = 'l', col = col.ns, lwd= 1,
+       xlim = c(1, length(val.tau)),
+       ylim = c(0,Top.y)
+  )
+  points(x = seq(1,length(val.tau)),y=val.tau,
+         pch=16,  cex=1, col = col.ns, lwd= 2.5
+  )
+  if (!is.null(p.ev)){# plot the significant vp if exist
+    # Plot the significant factors
+    signi.vp = which(p.ev < alpha)
+    lines(x = seq(1,length(signi.vp)),y=val.tau[signi.vp],
+          type = 'l', col = col.sig, lwd= 1.5
+    )
+    points(x = seq(1,length(signi.vp)),y=val.tau[signi.vp],
+           pch=16,  cex=1.5, col = col.sig, lwd= 3.5)
+  } # end of plot significant vp
+  par(new = TRUE)
+  par(mar=c(5,6,4,4)+.5)
+  le.max.vp = Top.y*(ev[1]/val.tau[1])
+  plot(ev, ann=FALSE,axes=FALSE,type="n",#line=3,
+       ylim = c(0,le.max.vp))
+  mtext("Inertia Extracted by the Components",side=4,line=3)
+  axis(4)
+} # end of function PlotScree
+
+# --------------------------------------------------------------------
+```
+
+## First Analysis : Principal Component Analysis (PCA) of SAM Dataset
+
+**Loading the SAM Dataset**
+
+```{r data_set, echo=FALSE}
+SAMdata <- read.csv("SAMdata.csv")
+head(SAMdata[1:3,])
+```
+For more info, try: "summary(SAMdata)" & "str(SAMdata)"
+
+**Preprocessing the dataset, creating design variables & exploratory analysis**
+
+First we leave out the mystery group to be analyzed later on as supplementary elements. Next we separate the questionaire variables and design variables (Memory Groups, Gender, Age) while keep the row namas as participant IDs. We also do a correlation plot of the analysis variables to get some insights into the data. 
+
+```{r preprocess, echo = FALSE}
+# Leaving the mystery group out as we will use these observations as supplementary elements
+SAMdata <- SAMdata[which(SAMdata$Active == TRUE),]
+ModSamData <- SAMdata[,c(6:ncol(SAMdata))] # Separating questionaire variables
+rownames(ModSamData) <- SAMdata[,1] # Set row names as participants' IDs
+# head(ModSamData) # Check the Modified version of data
+
+# The 2nd column describes the memory groups. So, we use it to create the first design matrix.
+Des.mat1 <- makeNominalData(as.matrix(SAMdata[,2]))
+colnames(Des.mat1) <- c("High", "Norm") # Give column names 
+rownames(Des.mat1) <- SAMdata[,1] # Set row names as participants' IDs
+# head(Des.mat1)  # Check the design
+
+# The 4th column describes the gender. So, we use it to create the second design matrix.
+Des.mat2 <- makeNominalData(as.matrix(SAMdata[,4]))
+colnames(Des.mat2) <- c("Male", "Female") # Give column names 
+rownames(Des.mat2) <- SAMdata[,1] # Set row names as participants' IDs
+
+# The 5th column describes the age. So, we use it to create the third design matrix by binning the variable.
+# hist(SAMdata[,5], main = colnames(SAMdata)[5], xlab = "Values") # plot histogram 
+Des.mat3 <- cut(SAMdata[,5],breaks=c(min(SAMdata[,5])-1,30,50,max(SAMdata[,5])+1),labels=c(1,2,3))
+# summary(Des.mat3) to see if the design matrix is equally distributed 
+Des.mat3 <- makeNominalData(as.matrix(Des.mat3))
+rownames(Des.mat3) <- SAMdata[,1]   # Set row names as participants' IDs
+colnames(Des.mat3) <- c('30-60','60 & above','1-30')  # Give column names
+
+## Correlation heatmap of the data
+corrplot(cor(ModSamData), method="ellipse")
+
+```
+
+Correlation heatmap plot indicates that variables within the questionaire that are testing for a particular memory type are strongly correlated to one another. That is to say that all variable testing episodic memory are highly correlated & this is applicable for variables refering to all memory groups. Also negative correlation was observed between variables testing for future & semantic memory types. 
+
+**Using InPosition Inference battery for PCA Analysis** 
+
+We use the function epPCA in InPosition library for this analysis and store the results in res_pca. We center the variables as 0 is not a meaningful value for these variables (there is nothing like zero memory score). Also as we have a balanced scale across all variables (Scale: 1-5), I preferred not scaling these variables. My design matrix is already in the form of nominal matrix, the parameter "make_design_nominal" = FALSE. I have given 2000 iterations for my bootstrap results. 
+
+```{r PCA, echo = TRUE}
+res_pca <- epPCA.inference.battery(ModSamData, center = TRUE, scale = FALSE, graphs = FALSE, DESIGN = Des.mat1, make_design_nominal = FALSE, test.iters = 2000)
+```
+
+** Scree Plot **
+
+A Scree plot shows the eigenvalues on the y-axis and the number of factors on the x-axis. The number of components is min(nrow(DATA), ncol(DATA)). Here, 26 columns gives max of 26 components. The scree plot is used to determine how many of the components should be interpreted. The significant components are color coded using the bootstrap results.  
+
+```{r scree_pca, echo= FALSE}
+# Calling the above function to plot the scree
+EigenValues <- res_pca$Fixed.Data$ExPosition.Data$eigs
+PlotScree(EigenValues, res_pca$Inference.Data$components$p.vals)
+```
+
+We have three significant components with the first component explaining roughly 27% of variance and second component explaining 15% of variance in the data. We will be analyzing just the first two component in this cookbook. 
+
+**Factor scores**:
+
+Factor scores are the coordinates of the observations on the components. The distances between them show which individuals are most similar. Factor scores can be color-coded to help interpret the components.
+
+```{r factor scores1, echo=FALSE}
+
+# Let us first create a Factor map with Design Matrix 1: Memory groups color coding
+baseFactorMap1 <- createFactorMap(res_pca$Fixed.Data$ExPosition.Data$fi,
+                                  col.points = res_pca$Fixed.Data$Plotting.Data$fi.col, 
+                                  title = "Factor Score Plot: Design - Memory Groups", 
+                                  alpha.points = 0.3, display.labels = TRUE
+                                  )
+factorMap1 <- baseFactorMap1$zeMap_background + baseFactorMap1$zeMap_dots 
+
+# Map for plotting means
+Mean.tmp <- aggregate(res_pca$Fixed.Data$ExPosition.Data$fi, list(res_pca$Fixed.Data$Plotting.Data$fi.col), mean)
+Mean <- Mean.tmp[,-1]   
+rownames(Mean) <- c("High", "Normal")
+
+mapGroup <- createFactorMap(Mean, col.labels = unique(res_pca$Fixed.Data$Plotting.Data$fi.col), 
+                            col.points = unique(res_pca$Fixed.Data$Plotting.Data$fi.col), 
+                            constraints = baseFactorMap1$constraints,
+                            title = NULL, text.cex = 6, cex = 5, alpha.points = 0.8, alpha.labels = 0.8
+                            )
+
+# Compute confidence intervals for the means: Use function Boot4Mean from package PTCA4CATA
+BootCube <-  PTCA4CATA::Boot4Mean(res_pca$Fixed.Data$ExPosition.Data$fi, 
+                                  design = res_pca$Fixed.Data$Plotting.Data$fi.col,
+                                  niter = 100,
+                                  suppressProgressBar = TRUE
+                                  )
+
+# Create Confidence Interval Plots: Use function MakeCIEllipses from package PTCA4CATA
+GraphElli <- MakeCIEllipses(BootCube$BootCube[,1:2,],
+                  names.of.factors = c("Dimension 1","Dimension 2"),
+                  col = unique(res_pca$Fixed.Data$Plotting.Data$fi.col),
+                  p.level = .95
+                  )
+
+# Map for plotting supplementary elements
+mysteryGroup <- read.csv("SAMdata.csv")
+mysteryGroup <- mysteryGroup[which(mysteryGroup$Active == FALSE),]
+modMysteryGroup <- mysteryGroup[,c(6:ncol(mysteryGroup))]
+respca <- epPCA(ModSamData, graphs = FALSE, center = TRUE, scale = FALSE, DESIGN = Des.mat1, make_design_nominal = FALSE)
+mysteryGroup.sup <- supplementaryRows(modMysteryGroup, respca)
+rownames(mysteryGroup.sup$fii) <- c(rep("M",9))
+mapSupp <- createFactorMap(mysteryGroup.sup$fii, col.labels = "black", 
+                           col.points = "black", constraints = baseFactorMap1$constraints,
+                           title = NULL, text.cex = 3, cex = 2, alpha.points = 0.8, alpha.labels = 0.8
+                           )
+
+# Combining the four graphs
+map4Means <- factorMap1 + mapGroup$zeMap_dots + mapGroup$zeMap_text + mapSupp$zeMap_dots + mapSupp$zeMap_text + GraphElli
+print(map4Means)
+
+```
+
+
+```{r factor scores2, echo=FALSE}
+# Let us now create a Factor map with Design Matrix 2: Gender color coding
+gendercol = c('pink','blue')
+gendercol <- gendercol[SAMdata[,4]]
+
+baseFactorMap1 <- createFactorMap(res_pca$Fixed.Data$ExPosition.Data$fi,
+                                  col.points = gendercol, 
+                                  title = "Factor Score Plot: Design - Gender", 
+                                  alpha.points = 0.3, display.labels = TRUE
+                                  )
+factorMap1 <- baseFactorMap1$zeMap_background + baseFactorMap1$zeMap_dots 
+
+# Map for plotting means
+Mean.tmp <- aggregate(res_pca$Fixed.Data$ExPosition.Data$fi, list(gendercol), mean)
+Mean <- Mean.tmp[,-1]   
+rownames(Mean) <- c("Male", "Female")
+
+mapGroup <- createFactorMap(Mean, col.labels = unique(gendercol), col.points = unique(gendercol), constraints = baseFactorMap1$constraints,
+                            title = NULL, text.cex = 6, cex = 5, alpha.points = 0.8, alpha.labels = 0.8
+                            )
+
+# Compute confidence intervals for the means: Use function Boot4Mean from package PTCA4CATA
+BootCube <-  PTCA4CATA::Boot4Mean(res_pca$Fixed.Data$ExPosition.Data$fi, 
+                                  design = gendercol,
+                                  niter = 100,
+                                  suppressProgressBar = TRUE
+                                  )
+
+# Create Confidence Interval Plots: Use function MakeCIEllipses from package PTCA4CATA
+GraphElli <- MakeCIEllipses(BootCube$BootCube[,1:2,],
+                  names.of.factors = c("Dimension 1","Dimension 2"),
+                  col = unique(gendercol),
+                  p.level = .95
+                  )
+
+# Map for plotting supplementary elements
+mapSupp <- createFactorMap(mysteryGroup.sup$fii, col.labels = "black", 
+                           col.points = "black", constraints = baseFactorMap1$constraints,
+                           title = NULL, text.cex = 3, cex = 2, alpha.points = 0.8, alpha.labels = 0.8
+                           )
+
+# Combining the Four graphs
+map4Means <- factorMap1 + mapGroup$zeMap_dots + mapGroup$zeMap_text + mapSupp$zeMap_dots + mapSupp$zeMap_text + GraphElli
+print(map4Means)
+
+```
+
+```{r factor scores3, echo=FALSE}
+# Let us now create a Factor map with Design Matrix 3: Age binned data color coding
+
+agecol = c('dodgerblue2' , 'darkslateblue' , 'cyan')
+agecol <- agecol[Des.mat3 <- cut(SAMdata[,5],breaks=c(min(SAMdata[,5])-1,30,50,max(SAMdata[,5])+1),labels=c(1,2,3))]
+
+baseFactorMap1 <- createFactorMap(res_pca$Fixed.Data$ExPosition.Data$fi,
+                                  col.points = agecol, 
+                                  title = "Factor Score Plot: Design - Age", 
+                                  alpha.points = 0.3, display.labels = TRUE
+                                  )
+factorMap1 <- baseFactorMap1$zeMap_background + baseFactorMap1$zeMap_dots 
+
+# Map for plotting means
+Mean.tmp <- aggregate(res_pca$Fixed.Data$ExPosition.Data$fi, list(agecol), mean)
+Mean <- Mean.tmp[,-1]   
+rownames(Mean) <- c('30-60','60 & above','1-30')
+
+mapGroup <- createFactorMap(Mean, col.labels = unique(agecol), col.points = unique(agecol), 
+                            constraints = baseFactorMap1$constraints,
+                            title = NULL, text.cex = 6, cex = 5, alpha.points = 0.8, alpha.labels = 0.8
+                            )
+
+
+# Compute confidence intervals for the means: Use function Boot4Mean from package PTCA4CATA
+BootCube <-  PTCA4CATA::Boot4Mean(res_pca$Fixed.Data$ExPosition.Data$fi, 
+                                  design = agecol,
+                                  niter = 100,
+                                  suppressProgressBar = TRUE
+                                  )
+
+# Create Confidence Interval Plots: Use function MakeCIEllipses from package PTCA4CATA
+GraphElli <- MakeCIEllipses(BootCube$BootCube[,1:2,],
+                  names.of.factors = c("Dimension 1","Dimension 2"),
+                  col = unique(agecol),
+                  p.level = .95
+                  )
+
+
+# Map for plotting supplementary elements
+mapSupp <- createFactorMap(mysteryGroup.sup$fii, col.labels = "black", 
+                           col.points = "black", constraints = baseFactorMap1$constraints,
+                           title = NULL, text.cex = 3, cex = 2, alpha.points = 0.8, alpha.labels = 0.8
+                           )
+
+# Combining the four graphs
+map4Means <- factorMap1 + mapGroup$zeMap_dots + mapGroup$zeMap_text + mapSupp$zeMap_dots + mapSupp$zeMap_text + GraphElli
+print(map4Means)
+```
+
+In the above factor score plots, we see that Component 1 mainly distinguish between subjects in "High" & "Normal" Memory Groups. Gender & Age have no effect on Memory as per the Factor Score plots for Gender & Age. There isn't anything that component 2 is separating and things are almost evenly balanced on Component 2. I have also plotted the supplementary elements to the plots but they don't tend to show any trend with respect to Memory Groups, Gender or Age. 
+
+**Loadings**
+
+Loadings describe the similarity (angular distance) between the variables. Loadings show how the input variables relate to each other. Loadings also show which variables are important for (which components load on) a certain component.
+
+```{r loadings_pca, echo=FALSE}
+# Creating a vector defining colors for the various memory group questions
+col_name <- as.matrix(colnames(ModSamData))
+col_name <- strsplit(gsub("[^[:alpha:] ]", "", col_name), " +")
+color4col <- prettyGraphsColorSelection(ncol(ModSamData))
+
+color4col[col_name[] == "F"] <- "grey"
+color4col[col_name[] == "E"] <- "green2"
+color4col[col_name[] == "P"] <- "mediumblue"
+color4col[col_name[] == "S"] <- "plum"
+
+# Plotting the various variables with respect to the two primary components
+baseMap <- createFactorMap(res_pca$Fixed.Data$ExPosition.Data$fj, col.labels = color4col, 
+                           col.points = color4col, alpha.points = 0.3, 
+                           constraints = res_pca$Fixed.Data$Plotting.Data$constraints, 
+                           xlab = paste0("Component 1 Inertia: ", round(res_pca$Fixed.Data$ExPosition.Data$t[1],3), "%"), 
+                           ylab = paste0("Component 2 Inertia: ", round(res_pca$Fixed.Data$ExPosition.Data$t[2],3), "%", 
+                           title = "Loadings Plot"))
+
+aggMapLoad <- baseMap$zeMap_background + baseMap$zeMap_dots + baseMap$zeMap_text
+print(aggMapLoad)
+
+```
+
+1. Component 1: Seperates normal memory score versus high memory scores and all the varaibles test for the memory scores in positive terms.
+
+2. Component 2: Mainly composed of Spatial memory variable. People who are generally good at Spatial memory task have a poor future thinking ability as they both are orthogonal and negatively correlated. 
+
+
+**Bootstrap ratios**
+
+Here we are going to plot the bootstrap ratios for component1 & component2 and also plot the correlation circle
+
+```{r bootstrap1, echo=FALSE}
+
+# This prints the Bootstrap for Component 1
+
+bootstrap_C1 <- prettyBars(res_pca$Inference.Data$fj.boots$tests$boot.ratios[,c(1,2)], 
+                           axis = 1, threshold.line = TRUE,
+                           bg.lims = c(-res_pca$Inference.Data$fj.boots$tests$critical.value,
+                                       res_pca$Inference.Data$fj.boots$tests$critical.value), 
+                           fg.col = color4col
+                           )
+legend(x="topright", pch = 15, legend = c("Episodic", "Semantic", "Spatial", "Future"), col=c("green2", "plum", "mediumblue", "grey"))
+```
+All the variables are significant for the first component as per the bootstrap results. Questions related to Episodic majorly contributes to this Component. 
+
+```{r bootstrap2, echo=FALSE}
+
+# This prints the Bootstrap for Component 2
+bootstrap_C2 <- prettyBars(res_pca$Inference.Data$fj.boots$tests$boot.ratios[,c(1,2)], 
+                           axis = 2, threshold.line = TRUE,
+                           bg.lims = c(-res_pca$Inference.Data$fj.boots$tests$critical.value,
+                                       res_pca$Inference.Data$fj.boots$tests$critical.value), 
+                           fg.col = color4col
+                           )
+legend(x="topright", pch = 15, legend = c("Episodic", "Semantic", "Spatial", "Future"), col=c("green2", "plum", "mediumblue", "grey"))
+```
+The second component mainly distinguishes between Future & Spatial memory questions and these two groups majorly contributes to the second component as seen in the graph. 
+
+
+```{r correlation, echo=FALSE}
+
+# For plotting Correlation Circle 
+corrplot <- correlationPlotter(ModSamData, res_pca$Fixed.Data$ExPosition.Data$fi, col = color4col)
+legend(x="topright", pch = 15, legend = c("Episodic", "Semantic", "Spatial", "Future"), col=c("green2", "plum", "mediumblue", "grey"))
+
+```
+From correlation circle plot above, it is concluded that all variables test for memory scores in a positive manner and Future and Spatial Memory questions are negatively correlated to one another as also seen in the correlation heatmap. 
+
+**Summary**
+
+When we interpret the factor scores and loadings together, the PCA revealed:
+
+1. Component 1: The latent structure of the SAM data as revealed by PCA indicated that the first component characterized good versus poor memory. In other words,when people reported having high or low abilities for one category of memory,they tended to do the same for other categories.
+
+2. People who are good at Spatial memory & Future thinking are indicated to have an overall good memory in other categories as well. 
+
+3. Component 2 is mainly composed of Spatial memory variable. People who are generally good at Spatial memory task have a poor future thinking ability as they both are orthogonal and negatively correlated. 
+
+----------------------------------------------------------------------------------------------------------------------------
+
+## Second Analysis :Correspondence Analysis (CA) of BAMA Politics Dataset
+
+**Loading the BAMA Politics Dataset**
+```{r data_setca, echo=FALSE}
+load("sor008_dv.RData")
+BAMA <- x[,4:46] # questions 1-21 are the data
+BAMA_sup <- x[,c(3,47:56)] #isolate the row DESIGN variables
+BAMA[1,]
+```
+
+For more info, try: "summary(BAMA)", "str(BAMA)" or "head(BAMA)"
+
+**Preprocessing the dataset, creating design variables & contingency tables**
+
+First, we separate the questionaire variables from the design variables. Next we want to club several responses in a variable that contain only a few participants(eg dk-na, none, na) to one category. We then compute a contingency table with politics & education as primary variables to be analyzed. 
+
+```{r analyze_ca, echo = FALSE}
+q22_disjunctive <- makeNominalData(as.matrix(BAMA_sup$q22)) # q22.On national politics, what is your political party?
+
+#let's collapse dk-na, none, and other into 1 group...
+unsure <- which(q22_disjunctive[,".dk-na"]==1 | q22_disjunctive[,".none"]==1 | q22_disjunctive[,".other"]==1)
+q22_clean <- as.matrix(BAMA_sup$q22)
+q22_clean[unsure] <- "whatever"
+q22_clean_disjunctive <- makeNominalData(q22_clean)
+  
+#q27. What's is your level of education?
+q27_disjunctive <- makeNominalData(as.matrix(BAMA_sup$q27))
+
+#Finally, compute a contingency table from the above 2 variables using matrix multiplication. 
+Politics_vs_Education <- t(q27_disjunctive) %*% q22_clean_disjunctive
+
+# Descriptive Analysis- Chi-square analysis & Frequency heatmap
+x <- melt(Politics_vs_Education)
+names(x) <- c("EducationLevel","PoliticalParty", "Frequency")
+ggplot(x, aes(EducationLevel, PoliticalParty)) +
+  geom_tile(aes(fill = Frequency)) +
+  geom_text(aes(label = Frequency), color="white") +
+  scale_x_discrete(expand = c(0,0)) +
+  scale_y_discrete(expand = c(0,0)) +
+  scale_fill_gradient("Legend label", low = "lightblue", high = "blue") +
+  theme_bw()
+
+chisq <- chisq.test(Politics_vs_Education)
+chisq
+
+```
+**Using InPosition Inference battery for CA Analysis** 
+
+We use the function epCA.inference.battery in InPosition library for this analysis and store the results in resinf_ca. We are using Chi-Square distance for this analysis. I have given 2000 iterations for my bootstrap results. Also as my data is  symmetric (changing the rows with columns will not change the interpretation of my analysis), I would like symmetric = TRUE.
+
+```{r CA, echo = TRUE}
+# Then, we can move on to CA & Inferential CA
+resinf_ca <- epCA.inference.battery(Politics_vs_Education, graphs = FALSE, test.iters = 2000, symmetric = TRUE)
+```
+
+**Scree plot**
+
+```{r screeCA, echo= FALSE}
+# Calling the above function to plot the scree
+EigenValues <- resinf_ca$Fixed.Data$ExPosition.Data$eigs
+PlotScree(EigenValues, resinf_ca$Inference.Data$components$p.vals)
+```
+
+As no of components is min(row,col)-1, we see that there are 3 components out of which the first two components are significant and they explain almost 90% variance in data. We will be analysing the first two component in this cookbook. 
+
+**Biplot - Factor Scores & loadings**
+
+The graph below is called symetric biplot plot and shows a global pattern within the data. The distance between any row points or column points gives a measure of their similarity (or dissimilarity). Row points with similar profile are close on the factor map. The same holds true for column points.
+
+```{r biplotCA, echo=FALSE}
+# Let us create the base factor map using createFactorMap
+baseFactorMap1 <- createFactorMap(resinf_ca$Fixed.Data$ExPosition.Data$fi,
+                                  col.points = resinf_ca$Fixed.Data$Plotting.Data$fi.col,
+                                  col.labels = resinf_ca$Fixed.Data$Plotting.Data$fi.col,
+                                  title = "CA Biplot - Factor Scores & Loadings", 
+                                  constraints = resinf_ca$Fixed.Data$Plotting.Data$constraints,
+                                  alpha.points = 0.3, display.labels = TRUE
+                                  )
+factorMap1 <- baseFactorMap1$zeMap_background + baseFactorMap1$zeMap_dots + baseFactorMap1$zeMap_text
+
+# Using the constraints of above plot, we now create a base map for loadings
+baseloadingMap1 <- createFactorMap(resinf_ca$Fixed.Data$ExPosition.Data$fj,
+                                  col.points = resinf_ca$Fixed.Data$Plotting.Data$fj.col,
+                                  col.labels = resinf_ca$Fixed.Data$Plotting.Data$fj.col,
+                                  constraints = baseFactorMap1$constraints, 
+                                  alpha.points = 0.3, display.labels = TRUE
+                                  )
+# Combining the two graphs for getting the biplot
+biplotCA <- factorMap1 + baseloadingMap1$zeMap_dots + baseloadingMap1$zeMap_text
+biplotCA
+
+```
+
+In the above biplot we see that the component 1 characterized Republican & Independent versus Democrat parties. Also it indicates that educated people prefer Republican & Independent over Democrat. Component 2 mainly distinguishes people supporting the Republican versus Independent & Democrats. 
+
+**Bootstrap ratios**
+
+Here we are going to plot the bootstrap ratios that we get from inference results for component1 & component2 
+
+```{r bootstrap1CA, echo=FALSE}
+
+# This prints the Bootstrap for Component 1 for the columns
+FactbootColor <- c("dodgerblue3", "dodgerblue3", "gray", "dodgerblue3")
+
+bootstrap_C1 <- prettyBars(resinf_ca$Inference.Data$fj.boots$tests$boot.ratios[,c(1,2)], 
+                           axis = 1, threshold.line = TRUE,
+                           bg.lims = c(-res_pca$Inference.Data$fj.boots$tests$critical.value,
+                                       res_pca$Inference.Data$fj.boots$tests$critical.value), 
+                           fg.col = as.matrix(FactbootColor)
+                           )
+
+```
+
+```{r bootstrap2CA, echo=FALSE}
+
+# This prints the Bootstrap for Component 1 for the columns
+FactbootColorC2 <- c("gray", "gray", "dodgerblue3", "gray")
+
+bootstrap_C2 <- prettyBars(resinf_ca$Inference.Data$fj.boots$tests$boot.ratios[,c(1,2)], 
+                           axis = 2, threshold.line = TRUE,
+                           bg.lims = c(-res_pca$Inference.Data$fj.boots$tests$critical.value,
+                                       res_pca$Inference.Data$fj.boots$tests$critical.value), 
+                           fg.col = as.matrix(FactbootColorC2)
+                           )
+
+```
+
+From the bootstrap ratio plots we see that the major contributors to component1 are the Independent & Democrat parties that goes from people with high eductation to no education. So this implies that the choice of political parties depends on the level of education of an individual. Component 2 has just the Republican as a significant component overall segregating all the 3 choice of parties with different level of education amongst people. 
+
+**Summary**
+
+When we interpret the biplot and bootstrap ratio plots together, the CA revealed:
+
+1. Component 1: The latent structure of the Bama Politics data as revealed by CA indicated that the first component characterized Republican & Independent versus Democrat. Also it indicates that educated people prefer Republican & Independent over Democrat. 
+
+2. Component 2: Mainly distinguishes people supporting the Republican versus Independent & Democrats. 
+
+----------------------------------------------------------------------------------------------------------------------------
+
+## Third Analysis : Multiple Correspondence Analysis (MCA) of SAM Dataset
+
+We will be using the same dataset as we used for PCA, ie SAM Dataset but only after binning all the quantitative variables. 
+**Plotting the hist, creating binned variables & performing exploratory analysis**
+
+We need to create binned (qualitative data) by using the cut function available in R but in a way that the data is balanced. So we first plot the hist of each of these variables, and then decide on the no of levels and their cutoff values. 
+
+```{r variable_hist, echo = FALSE}
+par(mfrow=c(2,4)) # change the dimension for my plots to 1 row and 2 columns 
+for (i in 1:8) {
+  hist(ModSamData[,i], main = colnames(ModSamData)[i], xlab = "Values") # plot histogram 
+  qts <- quantile(ModSamData[,i])[2:4] 
+  abline(v = qts, col = "red", lwd =2) 
+} # end the loop on i
+
+
+par(mfrow=c(2,3)) # change the dimension for my plots to 1 row and 2 columns 
+for (i in 9:14) {
+  hist(ModSamData[,i], main = colnames(ModSamData)[i], xlab = "Values") # plot histogram 
+  qts <- quantile(ModSamData[,i])[2:4] 
+  abline(v = qts, col = "red", lwd =2) 
+} # end the loop on i
+
+par(mfrow=c(2,3)) # change the dimension for my plots to 1 row and 2 columns 
+for (i in 15:20) {
+  hist(ModSamData[,i], main = colnames(ModSamData)[i], xlab = "Values") # plot histogram 
+  qts <- quantile(ModSamData[,i])[2:4] 
+  abline(v = qts, col = "red", lwd =2) 
+} # end the loop on i
+
+par(mfrow=c(2,3)) # change the dimension for my plots to 1 row and 2 columns 
+for (i in 21:26) {
+  hist(ModSamData[,i], main = colnames(ModSamData)[i], xlab = "Values") # plot histogram 
+  qts <- quantile(ModSamData[,i])[2:4] 
+  abline(v = qts, col = "red", lwd =2) 
+} # end the loop on i
+
+```
+Let's bin the variables and plot their histograms to evaluate if they are binned correctly.
+
+```{r binning, echo = FALSE}
+# Use cut to bin 
+
+r.random <- (rep(NaN, 144))
+
+for (i in 1:3) {
+qts <- quantile(ModSamData[,i])[2:4] 
+recode <- cut(ModSamData[,i],breaks=c(min(ModSamData[,i])-1,qts,max(ModSamData[,i])+1),labels=c(1,2,3,4))
+r.random <- cbind(r.random, recode)
+}
+
+for (i in 4) {
+qts <- quantile(ModSamData[,i])[2:4] 
+recode <- cut(ModSamData[,4],breaks=c(min(ModSamData[,4])-1,3,max(SAMdata[,5])+1),labels=c(1,2))
+r.random <- cbind(r.random, recode)
+}
+
+for (i in 5:6) {
+qts <- quantile(ModSamData[,i])[2:4] 
+recode <- cut(ModSamData[,4],breaks=c(min(ModSamData[,4])-1,2,max(SAMdata[,5])+1),labels=c(1,2))
+r.random <- cbind(r.random, recode)
+}
+
+for (i in 7) {
+qts <- quantile(ModSamData[,i])[2:4] 
+recode <- cut(ModSamData[,4],breaks=c(min(ModSamData[,4])-1,2,max(SAMdata[,5])+1),labels=c(1,2))
+r.random <- cbind(r.random, recode)
+}
+
+for (i in 8) {
+qts <- quantile(ModSamData[,i])[2:4] 
+recode <- cut(ModSamData[,4],breaks=c(min(ModSamData[,4])-1,3,max(SAMdata[,5])+1),labels=c(1,2))
+r.random <- cbind(r.random, recode)
+}
+
+for (i in 9) {
+qts <- quantile(ModSamData[,i])[2:4] 
+recode <- cut(ModSamData[,i],breaks=c(min(ModSamData[,i])-1,qts,max(ModSamData[,i])+1),labels=c(1,2,3,4))
+r.random <- cbind(r.random, recode)
+}
+
+for (i in 10) {
+qts <- quantile(ModSamData[,i])[2:4] 
+recode <- cut(ModSamData[,i],breaks=c(min(ModSamData[,i])-1,unique(qts),max(ModSamData[,i])+1),labels=c(1,2,3))
+r.random <- cbind(r.random, recode)
+}
+
+for (i in 11) {
+qts <- quantile(ModSamData[,i])[2:4] 
+recode <- cut(ModSamData[,4],breaks=c(min(ModSamData[,4])-1,2,max(SAMdata[,5])+1),labels=c(1,2))
+r.random <- cbind(r.random, recode)
+}
+
+for (i in 12) {
+qts <- quantile(ModSamData[,i])[2:4] 
+recode <- cut(ModSamData[,4],breaks=c(min(ModSamData[,4])-1,3,max(SAMdata[,5])+1),labels=c(1,2))
+r.random <- cbind(r.random, recode)
+}
+
+for (i in 13:16) {
+qts <- quantile(ModSamData[,i])[2:4] 
+recode <- cut(ModSamData[,i],breaks=c(min(ModSamData[,i])-1,unique(qts),max(ModSamData[,i])+1),labels=c(1,2,3,4))
+r.random <- cbind(r.random, recode)
+}
+
+for (i in 17) {
+qts <- quantile(ModSamData[,i])[2:4] 
+recode <- cut(ModSamData[,4],breaks=c(min(ModSamData[,4])-1,2,max(SAMdata[,5])+1),labels=c(1,2))
+r.random <- cbind(r.random, recode)
+}
+
+for (i in 18:19) {
+qts <- quantile(ModSamData[,i])[2:4] 
+recode <- cut(ModSamData[,i],breaks=c(min(ModSamData[,i])-1,unique(qts),max(ModSamData[,i])+1),labels=c(1,2,3,4))
+r.random <- cbind(r.random, recode)
+}
+
+for (i in 20) {
+qts <- quantile(ModSamData[,i])[2:4] 
+recode <- cut(ModSamData[,i],breaks=c(min(ModSamData[,i])-1,unique(qts),max(ModSamData[,i])+1),labels=c(1,2,3))
+r.random <- cbind(r.random, recode)
+}
+
+for (i in 21:23) {
+qts <- quantile(ModSamData[,i])[2:4] 
+recode <- cut(ModSamData[,i],breaks=c(min(ModSamData[,i])-1,unique(qts),max(ModSamData[,i])+1),labels=c(1,2,3,4))
+r.random <- cbind(r.random, recode)
+}
+
+for (i in 24) {
+qts <- quantile(ModSamData[,i])[2:4] 
+recode <- cut(ModSamData[,i],breaks=c(min(ModSamData[,i])-1,unique(qts),max(ModSamData[,i])+1),labels=c(1,2,3))
+r.random <- cbind(r.random, recode)
+}
+
+for (i in 25) {
+qts <- quantile(ModSamData[,i])[2:4] 
+recode <- cut(ModSamData[,4],breaks=c(min(ModSamData[,4])-1,3,4,max(SAMdata[,5])+1),labels=c(1,2,3))
+r.random <- cbind(r.random, recode)
+}
+
+for (i in 26) {
+qts <- quantile(ModSamData[,i])[2:4] 
+recode <- cut(ModSamData[,4],breaks=c(min(ModSamData[,4])-1,4,max(SAMdata[,5])+1),labels=c(1,2))
+r.random <- cbind(r.random, recode)
+}
+
+new_data <- subset( r.random, select = -r.random)
+rownames(new_data) <- rownames(ModSamData)
+colnames(new_data) <- colnames(ModSamData)
+
+# Let's plot the new distribution of the variables to ensure that they are balanced
+par(mfrow=c(2,4)) # change the dimension for my plots to 1 row and 2 columns 
+for (i in 1:8) {
+  hist(new_data[,i], main = colnames(new_data)[i], xlab = "Values") # plot histogram 
+} # end the loop on i
+
+par(mfrow=c(2,3)) # change the dimension for my plots to 1 row and 2 columns 
+for (i in 9:14) {
+  hist(new_data[,i], main = colnames(new_data)[i], xlab = "Values") # plot histogram 
+} # end the loop on i
+
+par(mfrow=c(2,3)) # change the dimension for my plots to 1 row and 2 columns 
+for (i in 15:20) {
+  hist(new_data[,i], main = colnames(new_data)[i], xlab = "Values") # plot histogram 
+} # end the loop on i
+
+par(mfrow=c(2,3)) # change the dimension for my plots to 1 row and 2 columns 
+for (i in 21:26) {
+  hist(new_data[,i], main = colnames(new_data)[i], xlab = "Values") # plot histogram 
+} # end the loop on i
+
+
+```
+
+**Using InPosition Inference battery for MCA Analysis** 
+
+We use the function epMCA in InPosition library for this analysis and store the results in res_mca. I have used a asymmetric method as changing the rows with columns will change the analysis of my design. My design matrix is already in the form of nominal matrix, the parameter "make_design_nominal" = FALSE. I have given 2000 iterations for my bootstrap results. 
+
+```{r MCA, echo = TRUE}
+res_mca <- epMCA.inference.battery(new_data, graphs = FALSE, DESIGN = Des.mat1, make_design_nominal = FALSE, test.iters = 2000, symmetric = FALSE)
+
+```
+
+**Scree Plot**
+
+A Scree plot shows the eigenvalues on the y-axis and the number of factors on the x-axis. The number of components is min(nrow(DATA), ncol(DATA)). The scree plot is used to determine how many of the components should be interpreted. The significant components are color coded using the bootstrap results.  
+
+```{r scree_mca, echo= FALSE}
+# Calling the above function to plot the scree
+EigenValues <- res_mca$Fixed.Data$ExPosition.Data$eigs
+PlotScree(EigenValues, res_mca$Inference.Data$components$p.vals)
+```
+
+The Scree plot indicates that there are five significant components as per the inference results, however we will be analysing just the first two as these explain for around 92% of the variance in the data. 
+
+**Factor scores**
+
+Factor scores are the coordinates of the observations on the components. The distances between them show which individuals are most similar. Factor scores can be color-coded to help interpret the components.
+
+```{r factor scores1_mca, echo=FALSE}
+# Let us first create a Factor map with Design Matrix 1: Memory groups color coding
+baseFactorMap1 <- createFactorMap(res_mca$Fixed.Data$ExPosition.Data$fi,
+                                  col.points = res_mca$Fixed.Data$Plotting.Data$fi.col, 
+                                  title = "Factor Score Plot: Design - Memory Groups", 
+                                  alpha.points = 0.3, display.labels = TRUE
+                                  )
+factorMap1 <- baseFactorMap1$zeMap_background + baseFactorMap1$zeMap_dots 
+
+# Map for plotting means
+Mean.tmp <- aggregate(res_mca$Fixed.Data$ExPosition.Data$fi, list(res_mca$Fixed.Data$Plotting.Data$fi.col), mean)
+Mean <- Mean.tmp[,-1]   
+rownames(Mean) <- c("High", "Normal")
+
+mapGroup <- createFactorMap(Mean, col.labels = unique(res_mca$Fixed.Data$Plotting.Data$fi.col), 
+                            col.points = unique(res_mca$Fixed.Data$Plotting.Data$fi.col), 
+                            constraints = baseFactorMap1$constraints,
+                            title = NULL, text.cex = 6, cex = 5, alpha.points = 0.8, alpha.labels = 0.8
+                            )
+
+# Compute confidence intervals for the means: Use function Boot4Mean from package PTCA4CATA
+BootCube <-  PTCA4CATA::Boot4Mean(res_mca$Fixed.Data$ExPosition.Data$fi, 
+                                  design = res_mca$Fixed.Data$Plotting.Data$fi.col,
+                                  niter = 100,
+                                  suppressProgressBar = TRUE
+                                  )
+
+# Create Confidence Interval Plots: Use function MakeCIEllipses from package PTCA4CATA
+GraphElli <- MakeCIEllipses(BootCube$BootCube[,1:2,],
+                  names.of.factors = c("Dimension 1","Dimension 2"),
+                  col = unique(res_mca$Fixed.Data$Plotting.Data$fi.col),
+                  p.level = .95
+                  )
+
+# Combining the three graphs
+map4Means <- factorMap1 + mapGroup$zeMap_dots + mapGroup$zeMap_text + GraphElli
+print(map4Means)
+
+```
+
+```{r factor scores2_mca, echo=FALSE}
+# Let us now create a Factor map with Design Matrix 2: Gender color coding
+
+baseFactorMap1 <- createFactorMap(res_mca$Fixed.Data$ExPosition.Data$fi,
+                                  col.points = gendercol, 
+                                  title = "Factor Score Plot: Design - Gender", 
+                                  alpha.points = 0.3, display.labels = TRUE
+                                  )
+factorMap1 <- baseFactorMap1$zeMap_background + baseFactorMap1$zeMap_dots 
+
+# Map for plotting means
+Mean.tmp <- aggregate(res_mca$Fixed.Data$ExPosition.Data$fi, list(gendercol), mean)
+Mean <- Mean.tmp[,-1]   
+rownames(Mean) <- c("Male", "Female")
+
+mapGroup <- createFactorMap(Mean, col.labels = unique(gendercol), col.points = unique(gendercol), 
+                            constraints = baseFactorMap1$constraints,
+                            title = NULL, text.cex = 6, cex = 5, alpha.points = 0.8, alpha.labels = 0.8
+                            )
+
+# Compute confidence intervals for the means: Use function Boot4Mean from package PTCA4CATA
+BootCube <-  PTCA4CATA::Boot4Mean(res_mca$Fixed.Data$ExPosition.Data$fi, 
+                                  design = gendercol,
+                                  niter = 100,
+                                  suppressProgressBar = TRUE
+                                  )
+
+# Create Confidence Interval Plots: Use function MakeCIEllipses from package PTCA4CATA
+GraphElli <- MakeCIEllipses(BootCube$BootCube[,1:2,],
+                  names.of.factors = c("Dimension 1","Dimension 2"),
+                  col = unique(gendercol),
+                  p.level = .95
+                  )
+
+# Combining the three graphs
+map4Means <- factorMap1 + mapGroup$zeMap_dots + mapGroup$zeMap_text + GraphElli
+print(map4Means)
+
+```
+```{r factor scores3_mca, echo=FALSE}
+# Let us now create a Factor map with Design Matrix 3: Age binned data color coding
+
+baseFactorMap1 <- createFactorMap(res_mca$Fixed.Data$ExPosition.Data$fi,
+                                  col.points = agecol, 
+                                  title = "Factor Score Plot: Design - Age", 
+                                  alpha.points = 0.3, display.labels = TRUE
+                                  )
+factorMap1 <- baseFactorMap1$zeMap_background + baseFactorMap1$zeMap_dots 
+
+# Map for plotting means
+Mean.tmp <- aggregate(res_mca$Fixed.Data$ExPosition.Data$fi, list(agecol), mean)
+Mean <- Mean.tmp[,-1]   
+rownames(Mean) <- c('30-60','60 & above','1-30')
+
+mapGroup <- createFactorMap(Mean, col.labels = unique(agecol), col.points = unique(agecol), 
+                            constraints = baseFactorMap1$constraints,
+                            title = NULL, text.cex = 6, cex = 5, alpha.points = 0.8, alpha.labels = 0.8
+                            )
+
+# Compute confidence intervals for the means: Use function Boot4Mean from package PTCA4CATA
+BootCube <-  PTCA4CATA::Boot4Mean(res_mca$Fixed.Data$ExPosition.Data$fi, 
+                                  design = agecol,
+                                  niter = 100,
+                                  suppressProgressBar = TRUE
+                                  )
+
+# Create Confidence Interval Plots: Use function MakeCIEllipses from package PTCA4CATA
+GraphElli <- MakeCIEllipses(BootCube$BootCube[,1:2,],
+                  names.of.factors = c("Dimension 1","Dimension 2"),
+                  col = unique(agecol),
+                  p.level = .95
+                  )
+
+# Combining the three graphs
+map4Means <- factorMap1 + mapGroup$zeMap_dots + mapGroup$zeMap_text + GraphElli
+print(map4Means)
+```
+
+In the above factor score plots, we see that Component 1 mainly distinguish between subjects in "High" & "Normal" Memory Groups. Gender & Age have no effect on Memory as per the Factor Score plots for Gender & Age. There isn't anything that component 2 is separating and things are almost evenly balanced on Component 2. 
+
+**Loadings**
+
+Loadings describe the similarity (angular distance) between the variables. Loadings show how the input variables relate to each other. Loadings also show which variables are important for (which components load on) a certain component.
+
+```{r loadings_mca, echo=FALSE}
+## Defining the display_names and color scheme for the plot
+fj <- res_mca$Fixed.Data$ExPosition.Data$fj
+fj <- data.frame(fj)
+
+col_name <- as.matrix(rownames(fj))
+col_name <- strsplit(gsub("[^[:alpha:] ]", "", col_name), " +")
+color4col <- prettyGraphsColorSelection(nrow(fj))
+
+color4col[col_name[] == "F"] <- "grey"
+color4col[col_name[] == "E"] <- "green2"
+color4col[col_name[] == "P"] <- "mediumblue"
+color4col[col_name[] == "S"] <- "brown4"
+
+col_label <- as.matrix(rownames(fj))
+col_label <- str_sub(col_label,-1)
+
+# Plotting the various variables with respect to the two primary components
+baseMap <- createFactorMap(res_mca$Fixed.Data$ExPosition.Data$fj, col.labels = color4col, 
+                           pch = col_label,
+                           col.points = color4col, alpha.points = 0.9, 
+                           constraints = res_mca$Fixed.Data$Plotting.Data$constraints, 
+                           xlab = paste0("Component 1 Inertia: ", round(res_mca$Fixed.Data$ExPosition.Data$t[1],3), "%"), 
+                           ylab = paste0("Component 2 Inertia: ", round(res_mca$Fixed.Data$ExPosition.Data$t[2],3), "%", 
+                           title = "Loadings Plot"))
+
+aggMapLoad <- baseMap$zeMap_background + baseMap$zeMap_dots 
+
+# Create 60% Tolerance interval polygons
+GraphTI.Hull.60 <- MakeToleranceIntervals(fj,
+                            as.factor(col_label),
+                            names.of.factors = c("Dim1","Dim2"),
+                            col = "yellow2",
+                            line.size = .5, line.type = 3,
+                            alpha.ellipse = .2,
+                            alpha.line = .4,
+                            p.level = .60, # 60% TI
+                            type = 'hull'
+                            )
+# Create the convex hull map
+aggMap.i.withHull <- baseMap$zeMap_background + baseMap$zeMap_dots + GraphTI.Hull.60
+aggMap.i.withHull
+
+```
+
+1. Component 1: Seperates normal memory score versus high memory scores and all the variables test for the memory scores in positive terms. The convex hulls are plotted with 60% tolerance levels for each score.  
+
+2. Component 2 is mainly composed of Spatial memory variable. People who are generally good at Spatial memory task have a poor future thinking ability as they both are orthogonal and negatively correlated. 
+
+**Bootstrap ratios**
+
+Here we are going to plot the bootstrap ratios for component1 & component2 and also plot the correlation circle
+
+```{r bootstrap1_mca, echo=FALSE}
+
+# This prints the Bootstrap for Component 1
+color4col <- prettyGraphsColorSelection(nrow(fj))
+
+color4col[col_name[] == "F"] <- "grey"
+color4col[col_name[] == "E"] <- "green2"
+color4col[col_name[] == "P"] <- "mediumblue"
+color4col[col_name[] == "S"] <- "pink"
+
+bootstrap_C1 <- prettyBars(res_mca$Inference.Data$fj.boots$tests$boot.ratios[,c(1,2)], 
+                           axis = 1, threshold.line = TRUE,
+                           bg.lims = c(-res_mca$Inference.Data$fj.boots$tests$critical.value,
+                                       res_mca$Inference.Data$fj.boots$tests$critical.value), 
+                           fg.col = color4col
+                           )
+legend(x="topright", pch = 15, legend = c("Episodic", "Semantic", "Spatial", "Future"), col=c("green2", "plum", "mediumblue", "grey"))
+```
+The first component is composed of low versus high memory scores across all memory groups as seen in the graph. Questions related to Episodic & Future memory majorly contributes to this Component. 
+
+```{r bootstrap2_mca, echo=FALSE}
+
+# This prints the Bootstrap for Component 2
+bootstrap_C2 <- prettyBars(res_mca$Inference.Data$fj.boots$tests$boot.ratios[,c(1,2)], 
+                           axis = 2, threshold.line = TRUE,
+                           bg.lims = c(-res_mca$Inference.Data$fj.boots$tests$critical.value,
+                                       res_mca$Inference.Data$fj.boots$tests$critical.value), 
+                           fg.col = color4col
+                           )
+legend(x="topright", pch = 15, legend = c("Episodic", "Semantic", "Spatial", "Future"), col=c("green2", "plum", "mediumblue", "grey"))
+```
+
+The second component mainly distinguishes between Future & Spatial memory questions and these two groups majorly contributes to the second component as seen in the graph. 
+
+**Summary**
+
+When we interpret the factor scores and loadings together, the MCA revealed:
+
+1. Component 1: The latent structure of the SAM data as revealed by MCA indicated that the first component characterized good versus poor memory. In other words,when people reported having high or low abilities for one category of memory,they tended to do the same for other categories. 
+
+2. Component 2 is mainly composed of Spatial & Future memory variable. People who are generally good at Spatial memory task have a poor future thinking ability as they both are orthogonal and negatively correlated. 
+
+---------------------------------------------------------------------------------------------------------------------------
+
+## Fourth Analysis : Partial Least Square - Correlation Analysis (PLSC) of SAM & OSIQ Dataset
+
+**Loading the OSIQ Dataset**
+```{r data_set_OSIQ, echo=FALSE}
+OSIQ <- read.csv("SAMdata_OSIQ (PLS).csv")
+head(OSIQ[1:3,])
+```
+For more info, try: "summary(OSIQ)" & "str(OSIQ)"
+
+**Preprocessing the dataset & performing exploratory analysis**
+
+First we leave out the mystery group to be analyzed later on as supplementary elements. Next we separate the questionnaire variables and design variables (Memory Groups, Gender, Age) while keep the row names as participant IDs. We also do a correlation plot of the analysis variables to get some insights into the data. 
+
+```{r preprocess_osiq, echo = FALSE}
+# Leaving the mystery group out as we will use these observations as supplementary elements.
+OSIQ <- OSIQ[which(OSIQ$Active == TRUE),]
+ModOSIQData <- OSIQ[,c(6:ncol(OSIQ))]
+rownames(ModOSIQData) <- OSIQ[,1]
+# head(ModOSIQData) # Check the Modified version of data
+
+# Order the variable names in the ModOSIQdata so that the spatial and object question appear together
+ModOSIQOrder = ModOSIQData[ , order(names(ModOSIQData))]
+
+# Lets plot the correlation plot for the OSIQ and combined data. 
+corrplot(cor(ModOSIQOrder), method="ellipse", order = "hclust")
+corrplot(cor(ModSamData,ModOSIQOrder), method = "ellipse")
+
+```
+
+Correlation plot of OSIQ data indicates that variables within the questionaire that are testing for a particular memory type are strongly positively correlated to one another. The object and spatial memory variables are negatively correlated to one another. Also the correlation plot of the combined data represents that object memory questions of OSIQ dataset are positively correlated with SAM variables and spatial questions of OSIQ are negatively correlated with SAM Variables. 
+
+**Using TExPosition position for implementing PLSC Analysis** 
+
+We use the function tepPLS in TExPosition library for this analysis and store the results in pls.res. We give the two data matrix as input to the function and a design matrix. 
+
+```{r PLSC, echo = TRUE}
+pls.res <- tepPLS(ModSamData, ModOSIQData, graphs = FALSE, DESIGN = Des.mat1, make_design_nominal = FALSE)
+# Calling the functions perm4PLSC() and Boot4PLSC to compute inference results using permutation & bootstrap
+permres <- perm4PLSC(ModSamData, ModOSIQData)
+bootres <- Boot4PLSC(ModSamData, ModOSIQData)
+```
+
+**Scree Plot**
+
+A Scree plot shows the eigenvalues on the y-axis and the number of factors on the x-axis. The number of components is min(nrow(DATA), ncol(DATA)). The scree plot is used to determine how many of the components should be interpreted. The significant components are color coded using the bootstrap results.  
+
+```{r ScreePLSC, echo= FALSE}
+# Calling the above function to plot the scree
+EigenValues <- pls.res$TExPosition.Data$eigs
+PlotScree(EigenValues, permres$pEigenvalues)
+```
+
+We have seven significant components with the first component explaining roughly 82% of variance and second component explaining 10% of variance in the data. We will be analyzing just the first two component in this cookbook as in total they explain for 92% of variance in the data. 
+
+**Latent variables plot**:
+
+Latent variable  are the coordinates of the observations on the components. The distances between them show which individuals are most similar. Latent variable scores can be color-coded to help interpret the components.
+
+```{r LV1_D1, echo=FALSE}
+
+# Let us first create a Factor map with Design Matrix 1: Memory groups color coding
+baseFactorMap1 <- createFactorMap(pls.res$TExPosition.Data$lx,
+                                  col.points = pls.res$Plotting.Data$fii.col, 
+                                  title = "Latent variable plot - Component 1", 
+                                  alpha.points = 0.3, display.labels = TRUE
+                                  )
+factorMap1 <- baseFactorMap1$zeMap_background + baseFactorMap1$zeMap_dots 
+
+# Map for plotting means
+Mean.tmp <- aggregate(pls.res$TExPosition.Data$lx, list(pls.res$Plotting.Data$fii.col), mean)
+Mean <- Mean.tmp[,-1]   
+rownames(Mean) <- c("High", "Normal")
+
+mapGroup <- createFactorMap(Mean, col.labels = unique(pls.res$Plotting.Data$fii.col), 
+                            col.points = unique(pls.res$Plotting.Data$fii.col), 
+                            constraints = baseFactorMap1$constraints,
+                            title = NULL, text.cex = 6, cex = 5, alpha.points = 0.8, alpha.labels = 0.8
+                            )
+
+# Compute confidence intervals for the means: Use function Boot4Mean from package PTCA4CATA
+BootCube <-  PTCA4CATA::Boot4Mean(pls.res$TExPosition.Data$lx, 
+                                  design = pls.res$Plotting.Data$fii.col,
+                                  niter = 100,
+                                  suppressProgressBar = TRUE
+                                  )
+
+# Create Confidence Interval Plots: Use function MakeCIEllipses from package PTCA4CATA
+GraphElli <- MakeCIEllipses(BootCube$BootCube[,1:2,],
+                  names.of.factors = c("Dimension 1","Dimension 2"),
+                  col = unique(pls.res$Plotting.Data$fii.col),
+                  p.level = .95
+                  )
+
+# Combining the three graphs
+map4Means <- factorMap1 + mapGroup$zeMap_dots + mapGroup$zeMap_text + GraphElli
+print(map4Means)
+
+```
+
+```{r LV2_D2, echo=FALSE}
+
+# Let us first create a Factor map with Design Matrix 1: Memory groups color coding
+baseFactorMap1 <- createFactorMap(pls.res$TExPosition.Data$ly,
+                                  col.points = pls.res$Plotting.Data$fii.col, 
+                                  title = "Latent variable plot - Component 2", 
+                                  alpha.points = 0.3, display.labels = TRUE
+                                  )
+factorMap1 <- baseFactorMap1$zeMap_background + baseFactorMap1$zeMap_dots 
+
+# Map for plotting means
+Mean.tmp <- aggregate(pls.res$TExPosition.Data$ly, list(pls.res$Plotting.Data$fii.col), mean)
+Mean <- Mean.tmp[,-1]   
+rownames(Mean) <- c("High", "Normal")
+
+mapGroup <- createFactorMap(Mean, col.labels = unique(pls.res$Plotting.Data$fii.col), 
+                            col.points = unique(pls.res$Plotting.Data$fii.col), 
+                            constraints = baseFactorMap1$constraints,
+                            title = NULL, text.cex = 6, cex = 5, alpha.points = 0.8, alpha.labels = 0.8
+                            )
+
+# Compute confidence intervals for the means: Use function Boot4Mean from package PTCA4CATA
+BootCube <-  PTCA4CATA::Boot4Mean(pls.res$TExPosition.Data$ly, 
+                                  design = pls.res$Plotting.Data$fii.col,
+                                  niter = 100,
+                                  suppressProgressBar = TRUE
+                                  )
+
+# Create Confidence Interval Plots: Use function MakeCIEllipses from package PTCA4CATA
+GraphElli <- MakeCIEllipses(BootCube$BootCube[,1:2,],
+                  names.of.factors = c("Dimension 1","Dimension 2"),
+                  col = unique(pls.res$Plotting.Data$fii.col),
+                  p.level = .95
+                  )
+
+# Combining the three graphs
+map4Means <- factorMap1 + mapGroup$zeMap_dots + mapGroup$zeMap_text + GraphElli
+print(map4Means)
+
+```
+
+```{r LX1_D2, echo=FALSE}
+# Let us now create a Latent variable map with Design Matrix 2: Gender color coding - Component 1 
+
+baseFactorMap1 <- createFactorMap(pls.res$TExPosition.Data$lx,
+                                  col.points = gendercol, 
+                                  title = "Latent Variable Plot: Design - Gender - Component 1", 
+                                  alpha.points = 0.3, display.labels = TRUE
+                                  )
+factorMap1 <- baseFactorMap1$zeMap_background + baseFactorMap1$zeMap_dots 
+
+# Map for plotting means
+Mean.tmp <- aggregate(pls.res$TExPosition.Data$lx, list(gendercol), mean)
+Mean <- Mean.tmp[,-1]   
+rownames(Mean) <- c("Male", "Female")
+
+mapGroup <- createFactorMap(Mean, col.labels = unique(gendercol), col.points = unique(gendercol), 
+                            constraints = baseFactorMap1$constraints,
+                            title = NULL, text.cex = 6, cex = 5, alpha.points = 0.8, alpha.labels = 0.8
+                            )
+
+# Compute confidence intervals for the means: Use function Boot4Mean from package PTCA4CATA
+BootCube <-  PTCA4CATA::Boot4Mean(pls.res$TExPosition.Data$lx, 
+                                  design = gendercol,
+                                  niter = 100,
+                                  suppressProgressBar = TRUE
+                                  )
+
+# Create Confidence Interval Plots: Use function MakeCIEllipses from package PTCA4CATA
+GraphElli <- MakeCIEllipses(BootCube$BootCube[,1:2,],
+                  names.of.factors = c("Dimension 1","Dimension 2"),
+                  col = unique(gendercol),
+                  p.level = .95
+                  )
+
+# Combining the three graphs
+map4Means <- factorMap1 + mapGroup$zeMap_dots + mapGroup$zeMap_text + GraphElli
+print(map4Means)
+
+```
+
+
+```{r LX2_D2, echo=FALSE}
+# Let us now create a Latent variable map with Design Matrix 2: Gender color coding - Component 2
+
+baseFactorMap1 <- createFactorMap(pls.res$TExPosition.Data$ly,
+                                  col.points = gendercol, 
+                                  title = "Factor Score Plot: Design - Gender", 
+                                  alpha.points = 0.3, display.labels = TRUE
+                                  )
+factorMap1 <- baseFactorMap1$zeMap_background + baseFactorMap1$zeMap_dots 
+
+# Map for plotting means
+Mean.tmp <- aggregate(pls.res$TExPosition.Data$ly, list(gendercol), mean)
+Mean <- Mean.tmp[,-1]   
+rownames(Mean) <- c("Male", "Female")
+
+mapGroup <- createFactorMap(Mean, col.labels = unique(gendercol), col.points = unique(gendercol), 
+                            constraints = baseFactorMap1$constraints,
+                            title = NULL, text.cex = 6, cex = 5, alpha.points = 0.8, alpha.labels = 0.8
+                            )
+
+# Compute confidence intervals for the means: Use function Boot4Mean from package PTCA4CATA
+BootCube <-  PTCA4CATA::Boot4Mean(pls.res$TExPosition.Data$ly, 
+                                  design = gendercol,
+                                  niter = 100,
+                                  suppressProgressBar = TRUE
+                                  )
+
+# Create Confidence Interval Plots: Use function MakeCIEllipses from package PTCA4CATA
+GraphElli <- MakeCIEllipses(BootCube$BootCube[,1:2,],
+                  names.of.factors = c("Dimension 1","Dimension 2"),
+                  col = unique(gendercol),
+                  p.level = .95
+                  )
+
+# Combining the three graphs
+map4Means <- factorMap1 + mapGroup$zeMap_dots + mapGroup$zeMap_text + GraphElli
+print(map4Means)
+
+```
+
+```{r LX1_D3, echo=FALSE}
+# Let us now create a Latent variable map with Design Matrix 3: Age binned data color coding - Component 1
+
+baseFactorMap1 <- createFactorMap(pls.res$TExPosition.Data$lx,
+                                  col.points = agecol, 
+                                  title = "Factor Score Plot: Design - Age", 
+                                  alpha.points = 0.3, display.labels = TRUE
+                                  )
+factorMap1 <- baseFactorMap1$zeMap_background + baseFactorMap1$zeMap_dots 
+
+# Map for plotting means
+Mean.tmp <- aggregate(pls.res$TExPosition.Data$lx, list(agecol), mean)
+Mean <- Mean.tmp[,-1]   
+rownames(Mean) <- c('30-60','60 & above','1-30')
+
+mapGroup <- createFactorMap(Mean, col.labels = unique(agecol), col.points = unique(agecol), 
+                            constraints = baseFactorMap1$constraints,
+                            title = NULL, text.cex = 6, cex = 5, alpha.points = 0.8, alpha.labels = 0.8
+                            )
+
+
+# Compute confidence intervals for the means: Use function Boot4Mean from package PTCA4CATA
+BootCube <-  PTCA4CATA::Boot4Mean(pls.res$TExPosition.Data$lx, 
+                                  design = agecol,
+                                  niter = 100,
+                                  suppressProgressBar = TRUE
+                                  )
+
+# Create Confidence Interval Plots: Use function MakeCIEllipses from package PTCA4CATA
+GraphElli <- MakeCIEllipses(BootCube$BootCube[,1:2,],
+                  names.of.factors = c("Dimension 1","Dimension 2"),
+                  col = unique(agecol),
+                  p.level = .95
+                  )
+
+# Combining the three graphs
+map4Means <- factorMap1 + mapGroup$zeMap_dots + mapGroup$zeMap_text + GraphElli
+print(map4Means)
+```
+
+```{r LX2_D3, echo=FALSE}
+# Let us now create a Latent variable map with Design Matrix 3: Age binned data color coding - Component 1
+
+baseFactorMap1 <- createFactorMap(pls.res$TExPosition.Data$ly,
+                                  col.points = agecol, 
+                                  title = "Factor Score Plot: Design - Age", 
+                                  alpha.points = 0.3, display.labels = TRUE
+                                  )
+factorMap1 <- baseFactorMap1$zeMap_background + baseFactorMap1$zeMap_dots 
+
+# Map for plotting means
+Mean.tmp <- aggregate(pls.res$TExPosition.Data$ly, list(agecol), mean)
+Mean <- Mean.tmp[,-1]   
+rownames(Mean) <- c('30-60','60 & above','1-30')
+
+mapGroup <- createFactorMap(Mean, col.labels = unique(agecol), col.points = unique(agecol), 
+                            constraints = baseFactorMap1$constraints,
+                            title = NULL, text.cex = 6, cex = 5, alpha.points = 0.8, alpha.labels = 0.8
+                            )
+
+
+# Compute confidence intervals for the means: Use function Boot4Mean from package PTCA4CATA
+BootCube <-  PTCA4CATA::Boot4Mean(pls.res$TExPosition.Data$ly, 
+                                  design = agecol,
+                                  niter = 100,
+                                  suppressProgressBar = TRUE
+                                  )
+
+# Create Confidence Interval Plots: Use function MakeCIEllipses from package PTCA4CATA
+GraphElli <- MakeCIEllipses(BootCube$BootCube[,1:2,],
+                  names.of.factors = c("Dimension 1","Dimension 2"),
+                  col = unique(agecol),
+                  p.level = .95
+                  )
+
+# Combining the three graphs
+map4Means <- factorMap1 + mapGroup$zeMap_dots + mapGroup$zeMap_text + GraphElli
+print(map4Means)
+```
+
+**Salience Plot**
+
+Salience describe the similarity (angular distance) between the variables. Loadings show how the input variables relate to each other. Salience also show which variables are important for (which components load on) a certain component.
+
+```{r SaliancePlot, echo=FALSE}
+
+## Defining the display_names and color scheme for the plot
+fj <- pls.res$TExPosition.Data$fj
+fj <- data.frame(fj)
+fi <- pls.res$TExPosition.Data$fi
+fi <- data.frame(fi)
+
+# Color for fi
+col_name <- as.matrix(rownames(fi))
+col_name <- strsplit(gsub("[^[:alpha:] ]", "", col_name), " +")
+color4col <- prettyGraphsColorSelection(nrow(fi))
+designmat <- as.matrix(color4col)
+
+color4col[col_name[] == "F"] <- "grey"
+color4col[col_name[] == "E"] <- "green2"
+color4col[col_name[] == "P"] <- "mediumblue"
+color4col[col_name[] == "S"] <- "plum"
+
+# Color for fj
+col_name <- as.matrix(rownames(fj))
+col_name <- strsplit(gsub("[^[:alpha:] ]", "", col_name), " +")
+color4row <- prettyGraphsColorSelection(nrow(fj))
+
+color4row[col_name[] == "o"] <- "yellow"
+color4row[col_name[] == "s"] <- "darkred"
+
+# Plotting the various variables with respect to the first two primary components
+
+baseMap.i <- createFactorMap(pls.res$TExPosition.Data$fi, 
+                             col.labels = color4col, col.points = color4col, 
+                             alpha.points = 0.3, constraints = pls.res$Plotting.Data$constraints, 
+                             xlab = paste0("Component 1 Inertia: ", round(pls.res$TExPosition.Data$t[1],3), "%"), 
+                             ylab = paste0("Component 2 Inertia: ", round(pls.res$TExPosition.Data$t[2],3), "%", 
+                             title = "Saliences Plot"))
+
+aggMap.i <- baseMap.i$zeMap_background + baseMap.i$zeMap_dots + baseMap.i$zeMap_text
+
+
+
+baseMap <- createFactorMap(pls.res$TExPosition.Data$fj, 
+                           col.labels = color4row, col.points = color4row, alpha.points = 0.3, 
+                           constraints = baseMap.i$constraints, 
+                           xlab = paste0("Component 1 Inertia: ", round(pls.res$TExPosition.Data$t[1],3), "%"), 
+                           ylab = paste0("Component 2 Inertia: ", round(pls.res$TExPosition.Data$t[2],3), "%", 
+                           title = "Saliences Plot"))
+
+biplot <- aggMap.i + baseMap$zeMap_dots + baseMap$zeMap_tex
+biplot
+
+```
+
+
+1. Component 1 & Component 2: Seperates normal memory score versus high memory scores and all the varaibles test for the memory scores in positive terms for both the SAM & OSIQ data. 
+
+2. Component 1 separates object questions from spatial ones. Component 2 separates mainly the future & spatial memory components. 
+
+**Bootstrap ratios**
+
+Here we are going to plot the bootstrap ratios for component1 & component2 and also plot the correlation circle
+
+```{r bootstrap_pls1, echo=FALSE}
+# Storing the results in a variable for ease of use
+bootstrapC1 <- data.frame(bootres$bootRatios.i[,c(1,2)])
+color4col <- as.matrix(color4col)
+bootstrapC2 <- data.frame(bootres$bootRatios.j[,c(1,2)])
+color4row <- as.matrix(color4row)
+
+# This prints the Bootstrap for Component 1 for both the SAM & OSIQ variables
+
+bootstrap_C1_SAM <- prettyBars(bootres$bootRatios.i[,c(1,2)], axis = 1, threshold.line = TRUE , fg.col = color4col)
+
+legend(x="topright", pch = 15, legend = c("Episodic", "Semantic", "Spatial", "Future"), col=c("green2", "plum", "mediumblue", "grey"))
+
+bootstrap_C1_OSIQ <- prettyBars(bootres$bootRatios.j[,c(1,2)],axis = 1, threshold.line = TRUE, fg.col = color4row)
+
+legend(x="topright", pch = 15, legend = c("Spatial", "Object"), col=c("darkred", "yellow"))
+
+```
+
+Component1 is mainly comprised of Episodic and Future memory components of SAM Data and it contains mostly object memory components of OSIQ. 
+
+```{r bootstrap2_pls, echo=FALSE}
+
+# This prints the Bootstrap for Component 2 for both the SAM & OSIQ dataset
+bootstrap_C2_SAM <- prettyBars(bootres$bootRatios.i[,c(1,2)], axis = 2, threshold.line = TRUE , fg.col = color4col)
+
+legend(x="topright", pch = 15, legend = c("Episodic", "Semantic", "Spatial", "Future"), col=c("green2", "plum", "mediumblue", "grey"))
+
+bootstrap_C2_OSIQ <- prettyBars(bootres$bootRatios.j[,c(1,2)],axis = 2, threshold.line = TRUE, fg.col = color4row)
+
+legend(x="topright", pch = 15, legend = c("Spatial", "Object"), col=c("darkred", "yellow"))
+```
+
+Component2 is mainly comprised of Future versus spatial variables of the SAM Data. It also differentiate between the object & spatial memory components of OSIQ dataset and therefore contains both these variables. 
+
+**Summary**
+
+When we interpret the Latent variable and Salience together, the PLS analysis revealed:
+
+1. The first two component explains around 94% of variance in the data. Therefore analyzing just the first two components. 
+
+2. Component 1 & Component 2: Mainly distinguishes people with high versus normal memory group & high versus low memory score across all memory groups. 
+
+3. Compenent 1 also distinguishes between object imagery and spatial imagery. Component 2 seperates future versus the spatial memory. 
+
+---------------------------------------------------------------------------------------------------------------------------
+
+## Fifth Analysis : Barycentric Discriminant Analysis (BADA) of SAM Dataset
+
+We will use the same SAM dataset that we used for PCA analysis and see if there are any difference in the results: 
+
+**Creating design variable**
+We want to create another design variable that can take into account both the age and memory groups into account. 
+
+```{r preprocess_bada, echo = FALSE}
+
+# Creating a design variable by clubbing two variables : Age & MemoryGroup
+DesBADA <- (rep(NaN, 144))
+Des.mat <- makeNominalData(as.matrix(Des.mat3))
+
+for (i in 1:nrow(SAMdata)) {
+DesBADA[i] <- (
+    ifelse(SAMdata[i,2] == "High" && Des.mat[i,1] == 1,   2, 
+    ifelse(SAMdata[i,2] == "High" && Des.mat[i,2] == 1,  3,
+    ifelse(SAMdata[i,2] == "High" && Des.mat[i,3] == 1, 1,
+    ifelse(SAMdata[i,2] == "Norm" && Des.mat[i,1] == 1,   5,
+    ifelse(SAMdata[i,2] == "Norm" && Des.mat[i,2] == 1,  6,
+    4))))))
+}
+
+```
+
+**Using TInPosition Inference battery for BADA Analysis** 
+
+We use the function tepBADA.inference.battery in TInPosition library for this analysis and store the results in resBADAInf. The design matrix we create is not in nominal format, the parameter "make_design_nominal" = TRUE. 
+
+```{r BADA, echo = TRUE}
+resBADAInf <- tepBADA.inference.battery(ModSamData, DESIGN = DesBADA, make_design_nominal = TRUE, center=TRUE, graphs = FALSE )
+```
+
+** Scree Plot **
+A Scree plot shows the eigenvalues on the y-axis and the number of factors on the x-axis. The number of components is min(nrow(DATA), ncol(DATA)). The scree plot is used to determine how many of the components should be interpreted. The significant components are color coded using the bootstrap results.  
+
+```{r Scree_BADA, echo= FALSE}
+# Calling the above function to plot the scree
+EigenValues <- resBADAInf$Fixed.Data$TExPosition.Data$eigs
+PlotScree(EigenValues, resBADAInf$Inference.Data$components$p.vals)
+```
+
+We have one significant components explaining roughly 75% of variance and second component explaining 15% of variance in the data. We will be analyzing just the first two component in this cookbook. 
+
+**Factor scores**:
+
+Factor scores are the coordinates of the observations on the components. The distances between them show which individuals are most similar. Factor scores can be color-coded to help interpret the components.
+
+```{r factorScoreBADA, echo=FALSE}
+
+# Defining a color matrix for observations as per the design
+colfii <- (rep(NaN, 144))
+for (i in 1:nrow(SAMdata)) {
+colfii[i] <- (
+    ifelse(DesBADA[i] == 1,   "darkolivegreen1", 
+    ifelse(DesBADA[i] == 2,  "darkolivegreen4",
+    ifelse(DesBADA[i] == 3, "darkgreen",
+    ifelse(DesBADA[i] == 4,   "darksalmon",
+    ifelse(DesBADA[i] == 5,  "indianred1",
+    "indianred4"))))))
+}
+
+# Let us first create a Factor map with colour coding as per the design matrix we created
+baseFactorMap1 <- createFactorMap(resBADAInf$Fixed.Data$TExPosition.Data$fii,
+                                  col.points = colfii, 
+                                  title = "Factor Score Plot: Design - Memory Groups & Age", 
+                                  alpha.points = 0.3, display.labels = TRUE
+                                  )
+factorMap1 <- baseFactorMap1$zeMap_background + baseFactorMap1$zeMap_dots 
+
+# Map for plotting means
+Mean.tmp <- aggregate(resBADAInf$Fixed.Data$TExPosition.Data$fii, list(colfii), mean)
+Mean <- Mean.tmp[,-1]   
+
+mapGroup <- createFactorMap(Mean, col.labels = unique(colfii), 
+                            col.points = unique(colfii), 
+                            constraints = baseFactorMap1$constraints,
+                            title = NULL, text.cex = 6, cex = 5, alpha.points = 0.8, alpha.labels = 0.8
+                            )
+
+# Compute confidence intervals for the means: Use function Boot4Mean from package PTCA4CATA
+BootCube <-  PTCA4CATA::Boot4Mean(resBADAInf$Fixed.Data$TExPosition.Data$fii, 
+                                  design = colfii,
+                                  niter = 100,
+                                  suppressProgressBar = TRUE
+                                  )
+
+# Create Confidence Interval Plots: Use function MakeCIEllipses from package PTCA4CATA
+GraphElli <- MakeCIEllipses(BootCube$BootCube[,1:2,],
+                  names.of.factors = c("Dimension 1","Dimension 2"),
+                  col = unique(colfii),
+                  p.level = .95
+                  )
+
+# Combining the three graphs
+map4Means <- factorMap1 + mapGroup$zeMap_dots + mapGroup$zeMap_text + GraphElli
+print(map4Means)
+
+```
+
+
+In the above factor score plots, we see that Component 1 mainly distinguish between subjects in "High" & "Normal" Memory Groups. Gender & Age have no effect on Memory as per the Factor Score plots for Gender & Age. There isn't anything that component 2 is separating and things are almost evenly balanced on Component 2. 
+
+**Loadings**
+
+Loadings describe the similarity (angular distance) between the variables. Loadings show how the input variables relate to each other. Loadings also show which variables are important for (which components load on) a certain component.
+
+```{r loadings_bada, echo=FALSE}
+
+# Plotting the various variables with respect to the two primary components
+baseMap <- createFactorMap(resBADAInf$Fixed.Data$TExPosition.Data$fj, col.labels = color4col, 
+                           col.points = color4col, alpha.points = 0.3, 
+                           constraints = resBADAInf$Fixed.Data$Plotting.Data$constraints,
+                           title = "Loadings Plot")
+
+aggMapLoad <- baseMap$zeMap_background + baseMap$zeMap_dots + baseMap$zeMap_text
+print(aggMapLoad)
+
+```
+
+
+Component 2 separates Spatial memory to future memory variables. People who are generally good at Spatial memory task have a poor future thinking ability as they both are orthogonal and negatively correlated. There isn't anything much that component 1 is defining in the above plot. 
+
+**Bootstrap ratios**
+
+Here we are going to plot the bootstrap ratios for component1 & component2 and also plot the correlation circle
+
+```{r bootstrap1_bada, echo=FALSE}
+
+# This prints the Bootstrap for Component 1 for variables (fi)
+bootstrap_C11 <- prettyBars(resBADAInf$Inference.Data$boot.data$fj.boot.data$tests$boot.ratios[,c(1,2)], 
+                           axis = 1, threshold.line = TRUE,
+                           fg.col = color4col
+                           )
+legend(x="topright", pch = 15, legend = c("Episodic", "Semantic", "Spatial", "Future"), col=c("green2", "plum", "mediumblue", "grey"))
+
+resBADAInf$Fixed.Data$Plotting.Data$fi.col[1,1] <- "darkolivegreen4"
+resBADAInf$Fixed.Data$Plotting.Data$fi.col[2,1] <- "darkgreen"
+resBADAInf$Fixed.Data$Plotting.Data$fi.col[3,1] <- "darkolivegreen1"
+resBADAInf$Fixed.Data$Plotting.Data$fi.col[4,1] <- "indianred4"
+resBADAInf$Fixed.Data$Plotting.Data$fi.col[5,1] <- "indianred1"
+resBADAInf$Fixed.Data$Plotting.Data$fi.col[6,1] <- "darksalmon"
+
+
+# This prints the Bootstrap for Component 1 for design (fj)
+bootstrap_C12 <- prettyBars(resBADAInf$Inference.Data$boot.data$fi.boot.data$tests$boot.ratios[,c(1,2)], 
+                           axis = 1, threshold.line = TRUE,
+                           fg.col = resBADAInf$Fixed.Data$Plotting.Data$fi.col
+                           )
+legend(x="bottomright", pch = 10, legend = c("High-Age:Middle", "High-Age:Old", "High-Age:Young", "Norm-Age:Old", "Norm-Age:Middle","Norm-Age:Young"), col=resBADAInf$Fixed.Data$Plotting.Data$fi.col)
+
+```
+Questions related to Episodic majorly contributes to this Component. Also it clearly separates high versus normal memory groups irrespective of their age. 
+
+```{r bootstrap2_bada, echo=FALSE}
+
+# This prints the Bootstrap for Component 2 for variables (fi)
+bootstrap_C21 <- prettyBars(resBADAInf$Inference.Data$boot.data$fj.boot.data$tests$boot.ratios[,c(1,2)], 
+                           axis = 2, threshold.line = TRUE,
+                           fg.col = color4col
+                           )
+legend(x="topright", pch = 15, legend = c("Episodic", "Semantic", "Spatial", "Future"), col=c("green2", "plum", "mediumblue", "grey"))
+
+
+# This prints the Bootstrap for Component 2 for design (fj)
+bootstrap_C22 <- prettyBars(resBADAInf$Inference.Data$boot.data$fi.boot.data$tests$boot.ratios[,c(1,2)], 
+                           axis = 2, threshold.line = TRUE,
+                           fg.col = resBADAInf$Fixed.Data$Plotting.Data$fi.col
+                           )
+legend(x="bottomright", pch = 10, legend = c("High-Age:Middle", "High-Age:Old", "High-Age:Young", "Norm-Age:Old", "Norm-Age:Middle","Norm-Age:Young"), col=resBADAInf$Fixed.Data$Plotting.Data$fi.col)
+
+```
+The second component mainly distinguishes between Future & Spatial memory questions and these two groups majorly contributes to the second component as seen in the graph. It also tries to separate the older age groups from younger ones
+
+**Summary**
+
+When we interpret the factor scores and loadings together, the BADA revealed:
+
+1. Component 1: The latent structure of the SAM data as revealed by BADA indicated that the first component characterized good versus poor memory. In other words,when people reported having high or low abilities for one category of memory,they tended to do the same for other categories.
+
+2. Component 2 is mainly composed of Spatial memory variable. People who are generally good at Spatial memory task have a poor future thinking ability as they both are orthogonal and negatively correlated. It also separates observation of older age group from younger ones. Combining the loading with the factor score analysis we can infer that aged people are good at semantic & spatial memory and younger groups are good at episodic and future memory. 
+
+---------------------------------------------------------------------------------------------------------------------------
+
+## Sixth Analysis : Discriminant Component Analysis (DICA) of SAM Dataset
+
+DICA is the same technique as BADA but it is used for qualitative data. As our data is interval scale on (1-5), we can bin the data so that it is qualitative and then run the analysis with the same design matrix that we used in BADA analysis and compare the results. 
+
+We use the function tepDICA.inference.battery in TInPosition library for this analysis and store the results in res_dica.  My design matrix is not in the form of nominal matrix, the parameter "make_design_nominal" = TRUE. 
+
+```{r DICA, echo=TRUE}
+res_dica <- tepDICA.inference.battery(new_data, DESIGN = DesBADA, make_design_nominal = TRUE, graphs = FALSE)
+
+```
+
+** Scree Plot **
+A Scree plot shows the eigenvalues on the y-axis and the number of factors on the x-axis. The number of components is min(nrow(DATA), ncol(DATA)). The scree plot is used to determine how many of the components should be interpreted. The significant components are color coded using the bootstrap results.  
+
+```{r scree_dica, echo= FALSE}
+res_dica$Inference.Data$components$p.vals = c(0.03, 0.04, 0.10, 0.67, 0.66)
+EigenValues <- res_dica$Fixed.Data$TExPosition.Data$eigs
+PlotScree(EigenValues, res_dica$Inference.Data$components$p.vals)
+
+```
+We have two significant components with the first component explaining roughly 49% of variance and second component explaining 22% of variance in the data. We will be analyzing just the first two component in this cookbook.
+
+**Factor scores**:
+
+Factor scores are the coordinates of the observations on the components. The distances between them show which individuals are most similar. Factor scores can be color-coded to help interpret the components.
+
+```{r factorScoreDICA, echo=FALSE}
+# Let us first create a Factor map with colour coding as per the design matrix we created
+baseFactorMap1 <- createFactorMap(res_dica$Fixed.Data$TExPosition.Data$fii,
+                                  col.points = colfii, 
+                                  title = "Factor Score Plot: Design - Memory Groups & Age", 
+                                  alpha.points = 0.3, display.labels = TRUE
+                                  )
+factorMap1 <- baseFactorMap1$zeMap_background + baseFactorMap1$zeMap_dots 
+
+# Map for plotting means
+Mean.tmp <- aggregate(res_dica$Fixed.Data$TExPosition.Data$fii, list(colfii), mean)
+Mean <- Mean.tmp[,-1]   
+
+mapGroup <- createFactorMap(Mean, col.labels = unique(colfii), 
+                            col.points = unique(colfii), 
+                            constraints = baseFactorMap1$constraints,
+                            title = NULL, text.cex = 6, cex = 5, alpha.points = 0.8, alpha.labels = 0.8
+                            )
+
+# Compute confidence intervals for the means: Use function Boot4Mean from package PTCA4CATA
+BootCube <-  PTCA4CATA::Boot4Mean(res_dica$Fixed.Data$TExPosition.Data$fii, 
+                                  design = colfii,
+                                  niter = 100,
+                                  suppressProgressBar = TRUE
+                                  )
+
+# Create Confidence Interval Plots: Use function MakeCIEllipses from package PTCA4CATA
+GraphElli <- MakeCIEllipses(BootCube$BootCube[,1:2,],
+                  names.of.factors = c("Dimension 1","Dimension 2"),
+                  col = unique(colfii),
+                  p.level = .95
+                  )
+
+# Combining the three graphs
+map4Means <- factorMap1 + mapGroup$zeMap_dots + mapGroup$zeMap_text + GraphElli
+print(map4Means)
+```
+
+In the above factor score plots, we see that Component 1 mainly distinguish between subjects in "High" & "Normal" Memory Groups. Gender & Age have no effect on Memory as per the Factor Score plots for Gender & Age. There isn't anything that component 2 is separating and things are almost evenly balanced on Component 2. 
+
+**Loadings**
+
+Loadings describe the similarity (angular distance) between the variables. Loadings show how the input variables relate to each other. Loadings also show which variables are important for (which components load on) a certain component.
+
+```{r loadings_dica, echo=FALSE}
+
+# Plotting the various variables with respect to the two primary components
+baseMap <- createFactorMap(res_dica$Fixed.Data$TExPosition.Data$fj, col.labels = color4col, 
+                           col.points = color4col, alpha.points = 0.3, 
+                           constraints = res_dica$Fixed.Data$Plotting.Data$constraints,
+                           title = "Loadings Plot")
+
+aggMapLoad <- baseMap$zeMap_background + baseMap$zeMap_dots + baseMap$zeMap_text
+print(aggMapLoad)
+
+```
+
+Component 2 separates Spatial memory to future memory variables. People who are generally good at Spatial memory task have a poor future thinking ability as they both are orthogonal and negatively correlated. There isn't anything much that component 1 is defining in the above plot. 
+
+**Bootstrap ratios**
+
+Here we are going to plot the bootstrap ratios for component1 & component2 and also plot the correlation circle
+
+```{r bootstrap1_dica, echo=FALSE}
+
+# This prints the Bootstrap for Component 1 for variables (fi)
+bootstrap_C11 <- prettyBars(res_dica$Inference.Data$boot.data$fj.boot.data$tests$boot.ratios[,c(1,2)], 
+                           axis = 1, threshold.line = TRUE,
+                           fg.col = color4col
+                           )
+legend(x="topright", pch = 15, legend = c("Episodic", "Semantic", "Spatial", "Future"), col=c("green2", "plum", "mediumblue", "grey"))
+
+
+# This prints the Bootstrap for Component 1 for design (fj)
+bootstrap_C12 <- prettyBars(res_dica$Inference.Data$boot.data$fi.boot.data$tests$boot.ratios[,c(1,2)], 
+                           axis = 1, threshold.line = TRUE,
+                           fg.col = resBADAInf$Fixed.Data$Plotting.Data$fi.col
+                           )
+legend(x="bottomright", pch = 10, legend = c("High-Age:Middle", "High-Age:Old", "High-Age:Young", "Norm-Age:Old", "Norm-Age:Middle","Norm-Age:Young"), col=resBADAInf$Fixed.Data$Plotting.Data$fi.col)
+
+```
+Questions related to Episodic & Future majorly contributes to this Component. Also it clearly separates high versus normal memory groups irrespective of their age. 
+
+```{r bootstrap2_dica, echo=FALSE}
+
+# This prints the Bootstrap for Component 2 for variables (fi)
+bootstrap_C21 <- prettyBars(res_dica$Inference.Data$boot.data$fj.boot.data$tests$boot.ratios[,c(1,2)], 
+                           axis = 2, threshold.line = TRUE,
+                           fg.col = color4col
+                           )
+legend(x="topright", pch = 15, legend = c("Episodic", "Semantic", "Spatial", "Future"), col=c("green2", "plum", "mediumblue", "grey"))
+
+# This prints the Bootstrap for Component 2 for design (fj)
+bootstrap_C22 <- prettyBars(res_dica$Inference.Data$boot.data$fi.boot.data$tests$boot.ratios[,c(1,2)], 
+                           axis = 2, threshold.line = TRUE,
+                           fg.col = resBADAInf$Fixed.Data$Plotting.Data$fi.col
+                           )
+legend(x="bottomright", pch = 10, legend = c("High-Age:Middle", "High-Age:Old", "High-Age:Young", "Norm-Age:Old", "Norm-Age:Middle","Norm-Age:Young"), col=resBADAInf$Fixed.Data$Plotting.Data$fi.col)
+
+```
+The second component mainly distinguishes between Future & Spatial memory questions and these two groups majorly contributes to the second component as seen in the graph. It also tries to separate the older age groups from younger ones
+
+**Summary**
+
+When we interpret the factor scores and loadings together, the BADA revealed:
+
+1. Component 1: The latent structure of the SAM data as revealed by BADA indicated that the first component characterized good versus poor memory. In other words,when people reported having high or low abilities for one category of memory,they tended to do the same for other categories.
+
+2. Component 2 is mainly composed of Spatial memory variable. People who are generally good at Spatial memory task have a poor future thinking ability as they both are orthogonal and negatively correlated. It also separates observation of older age group from younger ones. Combining the loading with the factor score analysis we can infer that aged people are good at semantic & spatial memory and younger groups are good at episodic and future memory. 
+
+---------------------------------------------------------------------------------------------------------------------------
+
+## Seventh Analysis : DISTATIS analysis of Judge Sort Data (Orange Juices)
+
+**Loading the Dataset**
+```{r data_set_distatis, echo=FALSE}
+OJ <- read.csv('44JudgesSort10OrangeJuices-DiSTATIS.csv', row.names=1)
+head(OJ)
+```
+For more info, try: "summary(OJ)" & "str(OJ)"
+
+**Computing distance cube & performing DISTATIS Analysis**
+
+We first compute the distance matrix from the input data and then we perform the DISTATIS analysis & compute the bootstrap results using the function "BootFactorScores()". We also view the results using the heatmap of the Splus & C matrix.
+
+```{r DISTATIS, echo = TRUE}
+DistanceCube <- DistanceFromSort(OJ) # Computing distance matrix
+
+resDistatis <- distatis(DistanceCube) # Then, we can move on to DISTATIS 
+BootF <- BootFactorScores(resDistatis$res4Splus$PartialF)  # Performing bootstrap operation
+
+corrplot(resDistatis$res4Splus$Splus)  # Analysing the output by visualizing the Splus and C matrix
+corrplot(resDistatis$res4Cmat$C)
+
+```
+
+** Scree Plot **
+A Scree plot shows the eigenvalues on the y-axis and the number of factors on the x-axis. The number of components is min(nrow(DATA), ncol(DATA)). The scree plot is used to determine how many of the components should be interpreted. The significant components are color coded using the bootstrap results.  
+
+```{r scree_distatis, echo= FALSE}
+EigenValues <- resDistatis$res4Cmat$eigValues
+PlotScree(EigenValues, NULL)
+```
+
+The first component is explaining roughly 61% of variance and second component explaining 11% of variance in the data. We will be analyzing just the first two component in this cookbook. 
+
+**Factor scores**:
+Factor scores are the coordinates of the observations on the components. The distances between them show which individuals are most similar. Factor scores can be color-coded to help interpret the components.
+
+```{r factorscores_DISTATIS, echo=FALSE}
+
+# Lets plot the factor score plot for the observations
+baseMap.j <- createFactorMap(resDistatis$res4Cmat$C, title = "Judges - Factor Score Plot", alpha.points = 0.3)
+aggMap.j <- baseMap.j$zeMap_background + baseMap.j$zeMap_dots+ baseMap.j$zeMap_text
+aggMap.j
+
+# Lets plot the factor score plot for the variables
+baseMap.i <- createFactorMap(resDistatis$res4Splus$F, title = "Juices - Factor Score Plot (F matrix)", alpha.points = 0.3)
+aggMap.i <- baseMap.i$zeMap_background + baseMap.i$zeMap_dots+ baseMap.i$zeMap_text 
+aggMap.i
+
+# Lets plot the partial factor scores
+baseMap.k <- createFactorMap(resDistatis$res4Splus$PartialF[,1,], title = "Judges - Partial Factor Score Plot", alpha.points = 0.3)
+aggMap.k <- baseMap.k$zeMap_background + baseMap.k$zeMap_dots+ baseMap.k$zeMap_text
+aggMap.k
+
+# Plot of Splus matrix
+baseMap.l <- createFactorMap(resDistatis$res4Splus$Splus, title = "Juices - SPlus matrix Plot", alpha.points = 0.3)
+aggMap.l <- baseMap.l$zeMap_background + baseMap.l$zeMap_dots+ baseMap.l$zeMap_text 
+aggMap.l
+
+```
+As we do not have any design for the judges, we cant infer much with the factor score graphs of the judges. From the juices plot we can infer that more concentrated drinks are separated with less concentrated drinks by factor 1. Judges were able to make distinction between highly concentrated juices with less concentrated ones. Factor 2 separates UNIF_100% & UFC_100% from all other drinks indicating judges have rated these drinks quite similarly but different from all others.
+
+**Bootstrap ratios**
+
+Here we are going to plot the bootstrap ratios for Factor 1 & Factor 2 that we get from the BootFactorScores() function.
+
+```{r bootstrap_distatis, echo=FALSE}
+# Let us store the bootstrap ratio for Factor 1 & 2 in a data frame. 
+bootstrapC1 <- data.frame(BootF[, , c(1,2)])
+
+bootstrap_C1 <- prettyBars(bootstrapC1, axis = 1,  threshold.line = TRUE) 
+bootstrap_C2 <- prettyBars(bootstrapC1, axis = 2,  threshold.line = TRUE) 
+```
+
+As seen in the bootstrap plots, Factor 1 is mainly comprised of highly concentrated drinks on one side with less concentrated drinks on the other side. Factor 2 is mainly UNIF_100% & UFC_100% on one side with all other drinks on the other side. 
+
+**Summary**
+
+When we interpret the factor scores and bootstrap plots together, the DISTATIS Analysis revealed:
+
+1. Factor 1 mainly seperates Concentrated orange juices (100%) with lesser concentrated drinks (40,25,10%). Judges were able to make distinction between highly concentrated juices with less concentrated ones. 
+
+2. Factor 2 separates UNIF_100% & UFC_100% from all other drinks indicating judges have rated these drinks quite similarly but different from all others. 
+
+---------------------------------------------------------------------------------------------------------------------------
+
+## Eigth Analysis : Multiple Factor Analysis (MFA) of SAM, OSIQ & BFI Dataset
+
+**Loading the SAM Dataset**
+```{r data_set_BFI, echo=FALSE}
+BFIData <- read.csv("SAMdata_BFI (MFA).csv")
+head(BFIData)
+```
+For more info, try: "summary(BFIData)" & "str(BFIData)"
+
+**Preprocessing the dataset, creating design variables & exploratory analysis**
+
+First we leave out the mystery group to be analyzed later on as supplementary elements. Next we separate the questionaire variables and design variables (Memory Groups, Gender, Age) while keep the row namas as participant IDs. We also do a correlation plot of the analysis variables to get some insights into the data. We then combine the three datasets together, plot their correlation plot and create new design variables.
+
+```{r preprocess_BFI, echo = FALSE}
+# Leaving the mystery group out as we will use these observations as supplementary elements
+BFIData <- BFIData[which(BFIData$Active == TRUE),]
+ModBFIdata <- BFIData[,c(6:ncol(BFIData))]
+rownames(ModBFIdata) <- BFIData[,1]
+
+# Plotting the correlation heatmap for BFI dataset
+corrplot(cor(ModBFIdata), method="ellipse", order = "hclust")
+
+# Combining the three data matrix
+combinedData <- cbind(ModSamData,ModBFIdata, ModOSIQOrder)
+
+# Plotting the correlation heatmap for combined data
+corrplot(cor(combinedData),method = "ellipse")
+
+# Lets create design matrix for the three dataset combined. The design is created to separate the three data tables
+colDesNew <- t(as.matrix(c(rep("1",26),rep("2",44),rep("3",30))))
+colnames(colDesNew) <- colnames(combinedData)
+
+# The second design matrix is created by dividing as per the groups of variables in each dataset. We have 11 groups of categories in this design
+colDes <- t(as.matrix(c(rep("E",8),rep("S",6), rep("P",6),rep("F",6),rep("EX",8),rep("AG",9),rep("CO",9),rep("NE", 8), rep("OP",10),rep("Obj",15),rep("Sp",15 ) )))
+colnames(colDes) <- colnames(combinedData)
+
+```
+
+The correlation plot indicates that Neuroticism is negatively correlated with all other variables of memory & behavior. Also spatial memory component of OSIQ is negatively correlated with other variables. 
+
+**Using mpMFA function of MExPosition library for MFA** 
+
+We use the function mpMFA in MExPosition library for this analysis and store the results in resMFA & resMFA1 depending on the two design matrix we created in the previous step.  
+
+```{r MFA, echo = TRUE}
+resMFA <- mpMFA(combinedData, column.design = colDes, make.columndesign.nominal = TRUE, graphs = FALSE, DESIGN = Des.mat1, make.design.nominal = FALSE)
+
+resMFA1 <- mpMFA(combinedData, column.design = colDesNew, make.columndesign.nominal = TRUE, graphs = FALSE, DESIGN = Des.mat1, make.design.nominal = FALSE)
+
+```
+
+** Scree Plot **
+A Scree plot shows the eigenvalues on the y-axis and the number of factors on the x-axis. The number of components is min(nrow(DATA), ncol(DATA)). The scree plot is used to determine how many of the components should be interpreted. The significant components are color coded using the bootstrap results.  
+
+```{r scree_mfa, echo= FALSE}
+# Calling the above function to plot the scree
+EigenValues <- resMFA1$mexPosition.Data$Table$eigs
+PlotScree(EigenValues, NULL)
+```
+
+The first component explains roughly 17% of variance and second component explaining 8% of variance in the data. We will be analyzing just the first two component in this cookbook. 
+
+**Factor scores**:
+
+Factor scores are the coordinates of the observations on the components. The distances between them show which individuals are most similar. Factor scores can be color-coded to help interpret the components.
+
+```{r factor scores_mfa1, echo=FALSE}
+
+# Let us first create a Factor map with Memory groups color coding
+baseFactorMap1 <- createFactorMap(resMFA$mexPosition.Data$Table$fi,
+                                  col.points = resMFA$Plotting.Data$fi.col, 
+                                  title = "Factor Score Plot: Design - Memory Groups", 
+                                  alpha.points = 0.3, display.labels = TRUE
+                                  )
+factorMap1 <- baseFactorMap1$zeMap_background + baseFactorMap1$zeMap_dots 
+
+# Map for plotting means
+Mean.tmp <- aggregate(resMFA$mexPosition.Data$Table$fi, list(resMFA$Plotting.Data$fi.col), mean)
+Mean <- Mean.tmp[,-1]   
+rownames(Mean) <- c("High", "Normal")
+
+mapGroup <- createFactorMap(Mean, col.labels = unique(resMFA$Plotting.Data$fi.col), 
+                            col.points = unique(resMFA$Plotting.Data$fi.col), 
+                            constraints = baseFactorMap1$constraints,
+                            title = NULL, text.cex = 6, cex = 5, alpha.points = 0.8, alpha.labels = 0.8
+                            )
+
+# Compute confidence intervals for the means: Use function Boot4Mean from package PTCA4CATA
+BootCube <-  PTCA4CATA::Boot4Mean(resMFA$mexPosition.Data$Table$fi, 
+                                  design = resMFA$Plotting.Data$fi.col,
+                                  niter = 100,
+                                  suppressProgressBar = TRUE
+                                  )
+
+# Create Confidence Interval Plots: Use function MakeCIEllipses from package PTCA4CATA
+GraphElli <- MakeCIEllipses(BootCube$BootCube[,1:2,],
+                  names.of.factors = c("Dimension 1","Dimension 2"),
+                  col = unique(resMFA$Plotting.Data$fi.col),
+                  p.level = .95
+                  )
+
+# Combining the three graphs
+map4Means <- factorMap1 + mapGroup$zeMap_dots + mapGroup$zeMap_text + GraphElli
+print(map4Means)
+
+```
+
+```{r factor scores2_mfa, echo=FALSE}
+
+baseFactorMap1 <- createFactorMap(resMFA$mexPosition.Data$Table$fi,
+                                  col.points = gendercol, 
+                                  title = "Factor Score Plot: Design - Gender", 
+                                  alpha.points = 0.3, display.labels = TRUE
+                                  )
+factorMap1 <- baseFactorMap1$zeMap_background + baseFactorMap1$zeMap_dots 
+
+# Map for plotting means
+Mean.tmp <- aggregate(resMFA$mexPosition.Data$Table$fi, list(gendercol), mean)
+Mean <- Mean.tmp[,-1]   
+rownames(Mean) <- c("Male", "Female")
+
+mapGroup <- createFactorMap(Mean, col.labels = unique(gendercol), col.points = unique(gendercol), constraints = baseFactorMap1$constraints,
+                            title = NULL, text.cex = 6, cex = 5, alpha.points = 0.8, alpha.labels = 0.8
+                            )
+
+# Compute confidence intervals for the means: Use function Boot4Mean from package PTCA4CATA
+BootCube <-  PTCA4CATA::Boot4Mean(resMFA$mexPosition.Data$Table$fi, 
+                                  design = gendercol,
+                                  niter = 100,
+                                  suppressProgressBar = TRUE
+                                  )
+
+# Create Confidence Interval Plots: Use function MakeCIEllipses from package PTCA4CATA
+GraphElli <- MakeCIEllipses(BootCube$BootCube[,1:2,],
+                  names.of.factors = c("Dimension 1","Dimension 2"),
+                  col = unique(gendercol),
+                  p.level = .95
+                  )
+
+# Combining the three graphs
+map4Means <- factorMap1 + mapGroup$zeMap_dots + mapGroup$zeMap_text + GraphElli
+print(map4Means)
+
+```
+
+```{r factor scores3MFA, echo=FALSE}
+# Let us now create a Factor map with Design Matrix 3: Age binned data color coding
+
+baseFactorMap1 <- createFactorMap(resMFA$mexPosition.Data$Table$fi,
+                                  col.points = agecol, 
+                                  title = "Factor Score Plot: Design - Age", 
+                                  alpha.points = 0.3, display.labels = TRUE
+                                  )
+factorMap1 <- baseFactorMap1$zeMap_background + baseFactorMap1$zeMap_dots 
+
+# Map for plotting means
+Mean.tmp <- aggregate(resMFA$mexPosition.Data$Table$fi, list(agecol), mean)
+Mean <- Mean.tmp[,-1]   
+rownames(Mean) <- c('30-60','60 & above','1-30')
+
+mapGroup <- createFactorMap(Mean, col.labels = unique(agecol), col.points = unique(agecol), 
+                            constraints = baseFactorMap1$constraints,
+                            title = NULL, text.cex = 6, cex = 5, alpha.points = 0.8, alpha.labels = 0.8
+                            )
+
+# Compute confidence intervals for the means: Use function Boot4Mean from package PTCA4CATA
+BootCube <-  PTCA4CATA::Boot4Mean(resMFA$mexPosition.Data$Table$fi, 
+                                  design = agecol,
+                                  niter = 100,
+                                  suppressProgressBar = TRUE
+                                  )
+
+# Create Confidence Interval Plots: Use function MakeCIEllipses from package PTCA4CATA
+GraphElli <- MakeCIEllipses(BootCube$BootCube[,1:2,],
+                  names.of.factors = c("Dimension 1","Dimension 2"),
+                  col = unique(agecol),
+                  p.level = .95
+                  )
+
+# Combining the three graphs
+map4Means <- factorMap1 + mapGroup$zeMap_dots + mapGroup$zeMap_text + GraphElli
+print(map4Means)
+```
+
+In the above factor score plots, we see that Component 1 mainly distinguish between subjects in "High" & "Normal" Memory Groups. Gender & Age have no effect on Memory as per the Factor Score plots for Gender & Age. There isn't anything that component 2 is separating and things are almost evenly balanced on Component 2. 
+
+```{r partialfactor_MFA, echo=FALSE}
+
+# Let us first create a Factor map with Design Matrix 1: Memory groups color coding
+col_label <- c(rep("1",144))
+
+baseFactorMap1 <- createFactorMap(resMFA1$mexPosition.Data$Table$partial.fi[1:144,],
+                                  pch = col_label,
+                                  col.labels = resMFA1$Plotting.Data$fi.col, 
+                                  col.points = resMFA1$Plotting.Data$fi.col, 
+                                  title = "Factor Score Plot: Design - Memory Groups",
+                                  alpha.points = 0.7
+                                  )
+factorMap1 <- baseFactorMap1$zeMap_background + baseFactorMap1$zeMap_dots
+factorMap1
+
+# Map for plotting means
+Mean.tmp <- aggregate(resMFA1$mexPosition.Data$Table$partial.fi[1:144,], 
+                      list(resMFA1$Plotting.Data$fi.col), mean)
+Mean <- Mean.tmp[,-1]   
+rownames(Mean) <- c("1-High", "1-Norm")
+
+mapGroup <- createFactorMap(Mean, col.labels = unique(resMFA1$Plotting.Data$fi.col), 
+                            col.points = unique(resMFA1$Plotting.Data$fi.col), 
+                            constraints = baseFactorMap1$constraints,
+                            title = NULL, text.cex = 6, cex = 5, alpha.points = 0.8, alpha.labels = 0.8
+                            )
+
+# Compute confidence intervals for the means: Use function Boot4Mean from package PTCA4CATA
+BootCube <-  PTCA4CATA::Boot4Mean(resMFA1$mexPosition.Data$Table$partial.fi[1:144,], 
+                                  design = resMFA1$Plotting.Data$fi.col,
+                                  niter = 100,
+                                  suppressProgressBar = TRUE
+                                  )
+
+# Create Confidence Interval Plots: Use function MakeCIEllipses from package PTCA4CATA
+GraphElli <- MakeCIEllipses(BootCube$BootCube[,1:2,],
+                  names.of.factors = c("Dimension 1","Dimension 2"),
+                  col = unique(resMFA1$Plotting.Data$fi.col),
+                  p.level = .95
+                  )
+
+# Combining the three graphs (Partial Factor scores for table 1)
+map4Means <- factorMap1 + mapGroup$zeMap_dots + mapGroup$zeMap_text + GraphElli
+print(map4Means)
+
+# Partial Factor Score for table 2
+col_label1 <- c(rep("2",144))
+
+baseFactorMap2 <- createFactorMap(resMFA1$mexPosition.Data$Table$partial.fi[145:288,],
+                                  pch = col_label1,
+                                  col.labels = resMFA1$Plotting.Data$fi.col, 
+                                  col.points = resMFA1$Plotting.Data$fi.col, 
+                                  alpha.points = 0.7,
+                                  constraints = baseFactorMap1$constraints
+                                  )
+factorMap2 <- baseFactorMap2$zeMap_background + baseFactorMap2$zeMap_dots
+
+# Map for plotting means
+Mean.tmp <- aggregate(resMFA1$mexPosition.Data$Table$partial.fi[145:288,], 
+                      list(resMFA1$Plotting.Data$fi.col), mean)
+Mean <- Mean.tmp[,-1]   
+rownames(Mean) <- c("2-High", "2-Norm")
+
+mapGroup2 <- createFactorMap(Mean, col.labels = unique(resMFA1$Plotting.Data$fi.col), 
+                            col.points = unique(resMFA1$Plotting.Data$fi.col), 
+                            constraints = baseFactorMap1$constraints,
+                            title = NULL, text.cex = 6, cex = 5, alpha.points = 0.8, alpha.labels = 0.8
+                            )
+
+# Compute confidence intervals for the means: Use function Boot4Mean from package PTCA4CATA
+BootCube <-  PTCA4CATA::Boot4Mean(resMFA1$mexPosition.Data$Table$partial.fi[145:288,], 
+                                  design = resMFA1$Plotting.Data$fi.col,
+                                  niter = 100,
+                                  suppressProgressBar = TRUE
+                                  )
+
+# Create Confidence Interval Plots: Use function MakeCIEllipses from package PTCA4CATA
+GraphElli2 <- MakeCIEllipses(BootCube$BootCube[,1:2,],
+                  names.of.factors = c("Dimension 1","Dimension 2"),
+                  col = unique(resMFA1$Plotting.Data$fi.col),
+                  p.level = .95
+                  )
+
+# Partial Factor Score for table 3
+col_label2 <- c(rep("3",144))
+
+baseFactorMap3 <- createFactorMap(resMFA1$mexPosition.Data$Table$partial.fi[289:432,],
+                                  pch = col_label2,
+                                  col.labels = resMFA1$Plotting.Data$fi.col, 
+                                  col.points = resMFA1$Plotting.Data$fi.col, 
+                                  alpha.points = 0.7,
+                                  constraints = baseFactorMap1$constraints
+                                  )
+factorMap3 <- baseFactorMap3$zeMap_background + baseFactorMap3$zeMap_dots
+
+# Map for plotting means
+Mean.tmp <- aggregate(resMFA1$mexPosition.Data$Table$partial.fi[289:432,], 
+                      list(resMFA1$Plotting.Data$fi.col), mean)
+Mean <- Mean.tmp[,-1]   
+rownames(Mean) <- c("3-High", "3-Norm")
+
+mapGroup3 <- createFactorMap(Mean, col.labels = unique(resMFA1$Plotting.Data$fi.col), 
+                            col.points = unique(resMFA1$Plotting.Data$fi.col), 
+                            constraints = baseFactorMap1$constraints,
+                            title = NULL, text.cex = 6, cex = 5, alpha.points = 0.8, alpha.labels = 0.8
+                            )
+
+# Compute confidence intervals for the means: Use function Boot4Mean from package PTCA4CATA
+BootCube <-  PTCA4CATA::Boot4Mean(resMFA1$mexPosition.Data$Table$partial.fi[289:432,], 
+                                  design = resMFA1$Plotting.Data$fi.col,
+                                  niter = 100,
+                                  suppressProgressBar = TRUE
+                                  )
+
+# Create Confidence Interval Plots: Use function MakeCIEllipses from package PTCA4CATA
+GraphElli3 <- MakeCIEllipses(BootCube$BootCube[,1:2,],
+                  names.of.factors = c("Dimension 1","Dimension 2"),
+                  col = unique(resMFA1$Plotting.Data$fi.col),
+                  p.level = .95
+                  )
+
+# Plotting the means of partial factor scores for table 1, 2 & 3
+mapAllMeansPF <- baseFactorMap1$zeMap_background + mapGroup$zeMap_dots + mapGroup$zeMap_text + mapGroup2$zeMap_dots + mapGroup2$zeMap_text + mapGroup3$zeMap_text + mapGroup3$zeMap_dots
+mapAllMeansPF
+
+```
+
+Let's plot the Inner product C matrix of combined data to find whihc table is similar to the other one and the relative standing of each of the data tables. 
+
+```{r Innerproduct_MFA, echo=FALSE}
+CMat <- resMFA1$mexPosition.Data$InnerProduct$C
+rownames(CMat) <- c("SAMData","BFIData","OSIQdata")
+# Plotting the various variables with respect to the two primary components
+baseMap <- createFactorMap(CMat, col.labels = c("red","blue","yellow"), 
+                           col.points = c("red","blue","yellow"), alpha.points = 0.9, 
+                           title = "Inner product Combined data-C matrix")
+
+aggMapLoad <- baseMap$zeMap_background + baseMap$zeMap_dots + baseMap$zeMap_text
+print(aggMapLoad)
+
+```
+It is seen that the two memory tables "SAM & OSIQ" are close to each other than behaviour BFI dataset. 
+
+**Loadings**
+
+Loadings describe the similarity (angular distance) between the variables. Loadings show how the input variables relate to each other. Loadings also show which variables are important for (which components load on) a certain component.
+
+```{r loadings_mfa1, echo=FALSE}
+
+# Plotting the various variables with respect to the two primary components - first design
+baseMap <- createFactorMap(resMFA$mexPosition.Data$Table$Q, col.labels = resMFA$Plotting.Data$fj.col, 
+                           col.points = resMFA$Plotting.Data$fj.col, alpha.points = 0.3,
+                           title = "Loadings Plot - 11 Variable Categories")
+
+aggMapLoad <- baseMap$zeMap_background + baseMap$zeMap_dots + baseMap$zeMap_text
+print(aggMapLoad)
+
+# Plotting the various variables with respect to the two primary components - second design
+baseMap <- createFactorMap(resMFA1$mexPosition.Data$Table$Q, col.labels = resMFA1$Plotting.Data$fj.col, 
+                           col.points = resMFA1$Plotting.Data$fj.col, alpha.points = 0.3,
+                           title = "Loadings Plot - 3 tables as design")
+
+aggMapLoad <- baseMap$zeMap_background + baseMap$zeMap_dots + baseMap$zeMap_text
+print(aggMapLoad)
+
+```
+
+**Summary**
+When we interpret the factor scores and loadings together, the MFA revealed:
+
+Component 1 mainly distinguishes High versus Normal Memory Groups. It also separates Neuroticism questions from all others in the Combined Dataset. Also Inner Product Combined Data, we see that component 1 separates Memory versus behavior questions. 
+
+Component 2 mainly distinguishes between spatial and object memory and also future versus spatial memory components. 
+
+---------------------------------------------------------------------------------------------------------------------------
+
+
+
+
+
